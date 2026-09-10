@@ -15,7 +15,9 @@
     Para empresas y gestorías. Le enviamos un enlace de acceso al correo:
     no hay contraseña que recordar.
   </p>
+  <div id="aviso-demo" class="aviso pendiente" hidden></div>
   <div id="aviso" class="aviso" hidden></div>
+  <div id="enlace-demo" hidden style="margin-bottom:1rem"></div>
   <form id="form">
     <div class="campo">
       <label for="email">Correo electrónico</label>
@@ -29,20 +31,44 @@
 </section>
 
 <script type="module">
-import { api, avisar } from '/js/api.js';
+import { api, avisar, escapar } from '/js/api.js';
+
+// Si el modo demostración está activo, se avisa y no hace falta correo real:
+// el propio servidor lo dirá al pedir el enlace.
+api('/api/auth/modo', { silencioso: true }).then((datos) => {
+  if (!datos.demo) return;
+  avisar(document.getElementById('aviso-demo'),
+    'Modo demostración: no se envía ningún correo. Al pedir el enlace, esta '
+    + 'misma pantalla lo mostrará con un botón para entrar.', 'pendiente');
+}).catch(() => {});
 
 const form = document.getElementById('form');
 form.addEventListener('submit', async (evento) => {
   evento.preventDefault();
   const boton = form.querySelector('button');
   boton.disabled = true;
+  const cajaEnlace = document.getElementById('enlace-demo');
+  cajaEnlace.hidden = true;
   try {
     const datos = await api('/api/auth/enlace', {
       metodo: 'POST',
       silencioso: true,
       cuerpo: { email: document.getElementById('email').value.trim() },
     });
-    avisar(document.getElementById('aviso'), datos.mensaje + '. Revise su bandeja de entrada.', 'exito');
+
+    if (datos.demo && datos.enlace) {
+      cajaEnlace.innerHTML = `
+        <div class="aviso exito" style="display:block">
+          <p style="margin:0 0 .6rem">Enlace generado. Caduca en ${escapar(datos.minutos)} minutos y sólo sirve una vez.</p>
+          <a href="${escapar(datos.enlace)}">
+            <button type="button" style="width:100%">Entrar ahora</button>
+          </a>
+        </div>`;
+      cajaEnlace.hidden = false;
+      document.getElementById('aviso').hidden = true;
+    } else {
+      avisar(document.getElementById('aviso'), datos.mensaje + '. Revise su bandeja de entrada.', 'exito');
+    }
     form.reset();
   } catch (error) {
     avisar(document.getElementById('aviso'), error.message, 'error');

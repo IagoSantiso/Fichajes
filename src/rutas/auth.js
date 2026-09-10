@@ -13,10 +13,31 @@ import {
 import { enviarCorreo, plantillaEnlaceMagico } from '../lib/correo.js';
 import { registrarAcceso } from '../lib/log.js';
 
+/**
+ * Modo demostración: cuando está activo, el enlace mágico vuelve en la propia
+ * respuesta de la API en lugar de depender sólo del correo. Sirve para dar a
+ * alguien una URL pública que pueda probar sin tener un buzón real conectado.
+ *
+ * Se activa con la variable de entorno MODO_DEMO_ENLACE = "1" en
+ * wrangler.toml. NUNCA debe estar activo con datos reales de clientes: anula
+ * la comprobación de que quien pide el enlace es dueño de ese correo, que es
+ * la base de seguridad de este mecanismo de acceso.
+ */
+function modoDemoActivo(env) {
+  return env.MODO_DEMO_ENLACE === '1';
+}
+
 export function registrarRutasAuth(router) {
+  /** Dice al frontend si el modo demo está activo, para adaptar la pantalla. */
+  router.get('/api/auth/modo', async ({ env }) => json({ demo: modoDemoActivo(env) }));
+
   /**
-   * Pide un enlace mágico. Responde siempre lo mismo exista o no la cuenta:
-   * si no, cualquiera podría averiguar qué correos están dados de alta.
+   * Pide un enlace mágico.
+   *
+   * Fuera del modo demo responde siempre lo mismo exista o no la cuenta: si
+   * no, cualquiera podría averiguar qué correos están dados de alta. En modo
+   * demo se prescinde de esa cautela a propósito, porque quien prueba la
+   * plataforma necesita saber si ha escrito bien el correo de ejemplo.
    */
   router.post('/api/auth/enlace', async ({ env, cuerpo, url }) => {
     const email = String(cuerpo.email ?? '').trim().toLowerCase();
@@ -26,13 +47,28 @@ export function registrarRutasAuth(router) {
       `SELECT * FROM usuarios WHERE lower(email) = ? AND activo = 1`,
     ).bind(email).first();
 
-    if (usuario) {
-      const { token, minutos } = await crearEnlaceMagico(env, usuario.id);
-      const enlace = `${url.origin}/api/auth/entrar?token=${encodeURIComponent(token)}`;
-      const { asunto, texto } = plantillaEnlaceMagico(enlace, minutos);
-      await enviarCorreo(env, { para: usuario.email, asunto, texto });
+    const demo = modoDemoActivo(env);
+    if (!usuario) {
+      if (demo) {
+        throw noEncontrado(
+          'Ese correo no está dado de alta en esta demostración. '
+          + 'Pruebe con el que le hayan facilitado.',
+        );
+      }
+      return json({ ok: true, mensaje: 'Si el correo está dado de alta, recibirá un enlace' });
     }
 
+    const { token, minutos } = await crearEnlaceMagico(env, usuario.id);
+    const enlace = `${url.origin}/api/auth/entrar?token=${encodeURIComponent(token)}`;
+
+    if (demo) {
+      // No se envía correo: se devuelve el enlace tal cual para que la
+      // pantalla lo enseñe con un botón.
+      return json({ ok: true, demo: true, enlace, minutos });
+    }
+
+    const { asunto, texto } = plantillaEnlaceMagico(enlace, minutos);
+    await enviarCorreo(env, { para: usuario.email, asunto, texto });
     return json({ ok: true, mensaje: 'Si el correo está dado de alta, recibirá un enlace' });
   });
 

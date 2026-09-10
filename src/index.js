@@ -28,6 +28,9 @@ const PUBLICAS = new Set([
   // el paso previo a teclear el PIN. Sólo devuelve nombres, y queda en el log.
   'GET /api/auth/empresa/:codigo',
   'POST /api/auth/pin',
+  // Sólo dice si el modo demostración está activo; no revela nada de la
+  // instalación. Ver MODO_DEMO_ENLACE en src/rutas/auth.js.
+  'GET /api/auth/modo',
   'GET /api/salud',
 ]);
 

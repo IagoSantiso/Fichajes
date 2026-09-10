@@ -42,9 +42,37 @@ Con la semilla cargada:
 
 - **Trabajador**: <http://localhost:8787/> — código `SOLDPER`, PIN `482915`.
 - **Empresa y gestoría**: <http://localhost:8787/entrar/> con
-  `jefe@soldaduras.ejemplo` o `gestor@ejemplo.es`. En desarrollo el correo no se
-  envía: el enlace mágico aparece en la salida de `wrangler dev`, listo para
-  pegar en el navegador.
+  `jefe@soldaduras.ejemplo` o `gestor@ejemplo.es`. Con `MODO_DEMO_ENLACE = "1"`
+  (el valor por defecto en `wrangler.toml`), la propia pantalla de entrada
+  enseña el enlace de acceso con un botón, sin correo de por medio. Con el modo
+  demo apagado, el enlace aparece en la salida de `wrangler dev` en su lugar.
+
+### Dar un enlace de previsualización a un cliente
+
+Para que alguien pueda probar la plataforma en una URL pública, sin instalar
+nada y sin depender de `wrangler dev`, se despliega igual que a producción
+(ver más abajo) dejando `MODO_DEMO_ENLACE = "1"`, que es el valor con el que
+viene el repositorio:
+
+```bash
+npx wrangler login
+npx wrangler secret put SECRETO_SESION
+npx wrangler d1 create fichajes           # si aún no existe; copie el database_id
+npm run db:remoto
+npx wrangler d1 execute fichajes --remote --file=./semillas/desarrollo.sql
+npm run deploy
+```
+
+La URL que da `npm run deploy`
+(`https://fichajes.<su-subdominio>.workers.dev`) ya sirve para que el cliente
+entre como trabajador (código `SOLDPER`, PIN `482915`) o como empresa/gestoría
+desde `/entrar/`, donde el botón "Entrar ahora" sustituye al correo.
+
+**Antes de dar de alta el primer cliente real**, ponga `MODO_DEMO_ENLACE = "0"`
+en `wrangler.toml` y despliegue de nuevo: con el modo demo activo, cualquiera
+que sepa el correo de una empresa —no que tenga acceso a su buzón— puede
+entrar como ella. Ver la nota en
+[`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md).
 
 ### Producción
 
@@ -54,6 +82,9 @@ npx wrangler secret put RESEND_API_KEY    # sólo si CORREO_PROVEEDOR = "resend"
 npm run db:remoto
 npm run deploy
 ```
+
+Y en `wrangler.toml`: `MODO_DEMO_ENLACE = "0"` y
+`CORREO_PROVEEDOR = "resend"`.
 
 ## Pruebas
 

@@ -79,6 +79,16 @@ consume una empresa de tres personas, no cuántos megabytes ocupa.
 Cosas que están bien para arrancar y que habrá que revisar. Se anotan para que
 no se descubran por sorpresa.
 
+- **`MODO_DEMO_ENLACE` debe apagarse antes de dar de alta datos reales.**
+  Con esta variable a `"1"` (ver `wrangler.toml`), el enlace mágico de acceso
+  de empresa y gestoría vuelve en la respuesta de la API y la pantalla de
+  entrada lo enseña con un botón, para poder enseñar la plataforma a alguien
+  sin tener un correo real conectado. Es exactamente lo que hace inseguro el
+  mecanismo el resto del tiempo: cualquiera que sepa el correo de una empresa
+  —no que tenga acceso a su buzón— puede entrar. Antes de cargar el primer
+  cliente real, poner `MODO_DEMO_ENLACE = "0"` y, si aún no está, configurar un
+  proveedor de correo de verdad (`CORREO_PROVEEDOR = "resend"`).
+
 - **Verificación de la cadena completa**: `verificarCadenaEmpresa()` carga todos
   los fichajes de la empresa en memoria. A tres o cuatro fichajes por trabajador
   y día son unos pocos miles de filas al año, así que aguanta de sobra el

@@ -339,3 +339,73 @@ test('una ruta inexistente devuelve 404 con mensaje claro', async () => {
   assert.equal(estado, 404);
   assert.match(datos.error, /Ruta no encontrada/);
 });
+
+// --- Modo demostración -----------------------------------------------------
+
+/**
+ * El modo demo es el atajo para dar a alguien una URL pública sin tener un
+ * correo real conectado: el enlace mágico vuelve en la propia respuesta. Por
+ * defecto debe estar apagado, porque anula la comprobación de que quien pide
+ * el enlace es el dueño del correo.
+ */
+test('el modo demo está apagado por defecto', async () => {
+  const { env } = prepararEntorno();
+  const { datos } = await llamar(env, 'GET', '/api/auth/modo');
+  assert.equal(datos.demo, false);
+});
+
+test('sin modo demo, pedir el enlace no lo revela y responde igual exista o no la cuenta', async () => {
+  const { db, env } = prepararEntorno();
+  db.exec(`INSERT INTO gestorias (id, nombre) VALUES ('ges_1','Gestoría Ejemplo')`);
+  db.exec(`INSERT INTO usuarios (id, email, nombre, rol, gestoria_id)
+           VALUES ('usu_g','gestor@ejemplo.es','Gestor','gestoria','ges_1')`);
+
+  const conCuenta = await llamar(env, 'POST', '/api/auth/enlace', {
+    cuerpo: { email: 'gestor@ejemplo.es' },
+  });
+  const sinCuenta = await llamar(env, 'POST', '/api/auth/enlace', {
+    cuerpo: { email: 'no-existe@nada.es' },
+  });
+
+  assert.equal(conCuenta.estado, 200);
+  assert.equal(sinCuenta.estado, 200);
+  assert.deepEqual(conCuenta.datos, sinCuenta.datos, 'la respuesta no debe distinguir si la cuenta existe');
+  assert.equal(conCuenta.datos.enlace, undefined, 'el enlace nunca debe salir por la API fuera del modo demo');
+});
+
+test('con modo demo, el enlace vuelve en la respuesta y se puede canjear', async () => {
+  const { db, env } = prepararEntorno();
+  env.MODO_DEMO_ENLACE = '1';
+  db.exec(`INSERT INTO gestorias (id, nombre) VALUES ('ges_1','Gestoría Ejemplo')`);
+  db.exec(`INSERT INTO usuarios (id, email, nombre, rol, gestoria_id)
+           VALUES ('usu_g','gestor@ejemplo.es','Gestor','gestoria','ges_1')`);
+
+  const modo = await llamar(env, 'GET', '/api/auth/modo');
+  assert.equal(modo.datos.demo, true);
+
+  const { estado, datos } = await llamar(env, 'POST', '/api/auth/enlace', {
+    cuerpo: { email: 'gestor@ejemplo.es' },
+  });
+  assert.equal(estado, 200);
+  assert.equal(datos.demo, true);
+  assert.match(datos.enlace, /\/api\/auth\/entrar\?token=/);
+
+  // El enlace generado funciona de verdad: canjearlo deja la sesión puesta.
+  const url = new URL(datos.enlace);
+  const canje = await llamar(env, 'GET', `${url.pathname}${url.search}`);
+  assert.equal(canje.estado, 302);
+  assert.equal(canje.respuesta.headers.get('location'), '/gestoria/');
+  assert.ok(canje.respuesta.headers.get('set-cookie'));
+});
+
+test('con modo demo, un correo no dado de alta se rechaza con un mensaje claro', async () => {
+  const { env } = prepararEntorno();
+  env.MODO_DEMO_ENLACE = '1';
+
+  const { estado, datos } = await llamar(env, 'POST', '/api/auth/enlace', {
+    cuerpo: { email: 'no-existe@nada.es' },
+  });
+  assert.equal(estado, 404);
+  assert.match(datos.error, /no está dado de alta/);
+  assert.equal(datos.enlace, undefined);
+});
