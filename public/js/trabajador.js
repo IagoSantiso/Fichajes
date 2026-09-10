@@ -387,21 +387,24 @@ async function cargarMisFichajes() {
     <div class="tarjeta">
       <h2>Total del mes: ${horasYMinutos(total)}</h2>
       <div class="tabla-envoltorio">
-        <table>
+        <table class="dias">
           <thead><tr><th>Día</th><th>Fichajes</th><th class="numero">Total</th><th></th></tr></thead>
           <tbody>
             ${datos.dias.map((d) => `
               <tr>
-                <td>${escapar(fechaLegible(d.fecha))}</td>
-                <td>${d.fichajes.map((f) => `
+                <td class="dia">
+                  <span class="fecha">${escapar(fechaLegible(d.fecha))}</span>
+                  <span class="total-dia">${horasYMinutos(d.minutos)}</span>
+                </td>
+                <td class="marcas">${d.fichajes.map((f) => `
                   <button class="secundario pequeno" data-corregir-fichaje="${escapar(f.id)}"
                           data-fecha="${escapar(d.fecha)}" data-hora="${escapar(f.hora)}"
                           data-tipo="${escapar(f.tipo)}"
                           title="Pedir corrección de este fichaje">
                     ${escapar(f.hora)} ${NOMBRE_TIPO[f.tipo].toLowerCase()}
                   </button>`).join(' ') || '<span class="ayuda">sin fichajes</span>'}</td>
-                <td class="numero">${horasYMinutos(d.minutos)}</td>
-                <td><button class="secundario pequeno" data-falta="${escapar(d.fecha)}">Falta un fichaje</button></td>
+                <td class="numero total">${horasYMinutos(d.minutos)}</td>
+                <td class="accion"><button class="secundario pequeno" data-falta="${escapar(d.fecha)}">Falta un fichaje</button></td>
               </tr>`).join('')}
           </tbody>
         </table>

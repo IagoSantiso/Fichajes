@@ -29,6 +29,8 @@ npm install
 npx wrangler d1 create fichajes          # copie el database_id a wrangler.toml
 npm run db:local                          # aplica las migraciones en local
 npm run semilla                           # datos de ejemplo (sólo desarrollo)
+node semillas/generar-mes.mjs             # un mes de fichajes realistas
+node semillas/pasar-motor.mjs             # y sus incidencias
 
 # Secreto de sesión para desarrollo
 cp .dev.vars.ejemplo .dev.vars            # y ponga una cadena larga y aleatoria
@@ -87,9 +89,10 @@ src/
     adaptadores/            csv.js, pdf.js — versionados
 public/                     PWA del trabajador y paneles de empresa y gestoría
 migraciones/                Esquema de la base de datos
-semillas/                   Datos de ejemplo para desarrollo
+semillas/                   Datos de ejemplo y generador de un mes de fichajes
 pruebas/                    Suite de pruebas
-docs/                       Arquitectura, normativa, RGPD y decisiones pendientes
+guia/                       Fuente de la guía de uso: capturas y maquetación
+docs/                       Arquitectura, normativa, RGPD y la guía en PDF
 ```
 
 ## Lo que este sistema no hace
@@ -115,3 +118,6 @@ cuando el primer cliente lo pida:
 - [`docs/API.md`](docs/API.md) — referencia de los endpoints.
 - [`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md) — lo que falta
   por cerrar antes de vender.
+- [`docs/Guia-de-uso.pdf`](docs/Guia-de-uso.pdf) — guía ilustrada, rol por rol,
+  con capturas de la aplicación en funcionamiento. Se regenera entera desde
+  [`guia/`](guia/README.md).

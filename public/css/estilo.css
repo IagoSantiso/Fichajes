@@ -219,6 +219,47 @@ tr.total td { font-weight: 700; border-top: 2px solid var(--tinta-suave); }
 .oculto { display: none !important; }
 .solo-lectura { pointer-events: none; opacity: .6; }
 
+/*
+ * El atributo hidden lo pone el navegador con display:none, pero cualquier
+ * regla de autor con display gana a la hoja de estilos del navegador. Sin
+ * esto, .fichaje { display: flex } dejaba la pantalla de fichar visible al
+ * cambiar de pestaña.
+ */
+[hidden] { display: none !important; }
+
+/*
+ * «Mis fichajes» en el móvil del trabajador.
+ *
+ * Cuatro columnas no caben en 390 px: los botones de cada fichaje se parten en
+ * tres líneas y la tabla se vuelve ilegible. En pantalla estrecha cada día pasa
+ * a ser un bloque, con la fecha y el total en una línea y las marcas debajo.
+ */
+/* En pantalla ancha el total va en su columna; en estrecha, junto a la fecha.
+   Las dos reglas tienen la misma especificidad: manda el orden del fichero. */
+table.dias .dia .total-dia { display: none; }
+
+@media (max-width: 640px) {
+  table.dias thead { display: none; }
+  table.dias, table.dias tbody, table.dias tr, table.dias td { display: block; width: 100%; }
+  table.dias tr { padding: .6rem 0; border-bottom: 1px solid var(--borde); }
+  table.dias td { border: 0; padding: 0; }
+
+  table.dias .dia {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-weight: 650; margin-bottom: .4rem;
+  }
+  table.dias .dia .total-dia {
+    display: inline; font-variant-numeric: tabular-nums; font-weight: 600;
+    color: var(--tinta-suave);
+  }
+  table.dias td.total { display: none; }        /* ya va junto a la fecha */
+
+  table.dias .marcas { display: flex; flex-wrap: wrap; gap: .35rem; }
+  table.dias .marcas button { white-space: nowrap; }
+  table.dias .accion { margin-top: .45rem; }
+}
+
+
 @media (max-width: 640px) {
   .barra > div { padding: .5rem .75rem; }
   .contenedor { padding: .75rem; }

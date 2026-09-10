@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Guía de uso · Registro de jornada</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm; }
+  @page :first { margin: 0; }
+
+  :root {
+    --tinta: #16191d;
+    --suave: #5b6672;
+    --tenue: #8b95a1;
+    --borde: #dde1e7;
+    --acento: #1f5fbf;
+    --verde: #1c7a4a;
+    --ambar: #9a6206;
+    --rojo: #b3261e;
+    --papel: #f5f6f8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 10pt;
+    line-height: 1.55;
+    color: var(--tinta);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3, h4 { line-height: 1.25; margin: 0; font-weight: 650; }
+
+  p { margin: 0 0 .55em; }
+  strong { font-weight: 650; }
+  code {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: .88em;
+    background: var(--papel);
+    padding: .08em .32em;
+    border-radius: 3px;
+  }
+
+  /* ---------- Portada ---------- */
+
+  .portada {
+    height: 297mm;
+    padding: 36mm 24mm 24mm;
+    background: linear-gradient(160deg, #1f5fbf 0%, #17488f 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    page-break-after: always;
+  }
+  .portada .reloj { width: 26mm; height: 26mm; margin-bottom: 14mm; }
+  .portada h1 { font-size: 30pt; letter-spacing: -.02em; margin-bottom: 4mm; }
+  .portada .sub { font-size: 13pt; opacity: .88; font-weight: 400; max-width: 120mm; }
+  .portada .pie { margin-top: auto; font-size: 9.5pt; opacity: .8; }
+  .portada .pie strong { display: block; font-size: 11pt; opacity: 1; margin-bottom: 1.5mm; }
+  .portada hr { border: 0; border-top: 1px solid rgba(255,255,255,.28); margin: 8mm 0; }
+
+  /* ---------- Estructura ---------- */
+
+  .seccion { page-break-before: always; }
+
+  .rotulo {
+    display: inline-block;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--acento);
+    margin-bottom: 2mm;
+  }
+  h2 { font-size: 19pt; letter-spacing: -.015em; margin-bottom: 2mm; }
+  .entradilla {
+    font-size: 10.5pt;
+    color: var(--suave);
+    max-width: 155mm;
+    margin-bottom: 6mm;
+    padding-bottom: 5mm;
+    border-bottom: 2px solid var(--borde);
+  }
+
+  h3 {
+    font-size: 12pt;
+    margin: 7mm 0 1.5mm;
+    page-break-after: avoid;
+  }
+  h3 .num {
+    display: inline-block;
+    min-width: 6.5mm; height: 6.5mm;
+    line-height: 6.5mm;
+    text-align: center;
+    background: var(--acento);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 8.5pt;
+    margin-right: 2.5mm;
+    vertical-align: .5mm;
+  }
+  h3 + p { margin-left: 9mm; }
+  .bloque { page-break-inside: avoid; margin-bottom: 6mm; }
+
+  /* ---------- Capturas ---------- */
+
+  figure { margin: 3mm 0 0 9mm; page-break-inside: avoid; }
+  figure img {
+    display: block;
+    border: 1px solid var(--borde);
+    border-radius: 5px;
+    background: #fff;
+  }
+  figcaption {
+    font-size: 8.5pt;
+    color: var(--tenue);
+    margin-top: 1.5mm;
+  }
+
+  .movil img { width: 62mm; }
+  .movil-ancho img { width: 74mm; }
+  .escritorio img { width: 100%; }
+  .escritorio-medio img { width: 132mm; }
+
+  .tira { display: flex; gap: 5mm; margin: 3mm 0 0 9mm; page-break-inside: avoid; }
+  .tira figure { margin: 0; }
+  .tira img { width: 52mm; }
+
+  /* ---------- Componentes ---------- */
+
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 3mm 0 5mm; }
+  th, td { text-align: left; padding: 2mm 3mm; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  th {
+    font-size: 8pt; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--tenue); border-bottom: 1.5px solid var(--borde);
+  }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+
+  .nota {
+    border-left: 3px solid var(--acento);
+    background: #f4f7fc;
+    padding: 3mm 4mm;
+    margin: 4mm 0 4mm 9mm;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .nota.aviso { border-left-color: var(--ambar); background: #fdf7ec; }
+  .nota.regla { border-left-color: var(--verde); background: #eef6f1; }
+  .nota p:last-child { margin-bottom: 0; }
+  .nota .titulo { font-weight: 650; display: block; margin-bottom: 1mm; }
+
+  .etiqueta {
+    display: inline-block; font-size: 8pt; font-weight: 650;
+    padding: .1em .55em; border-radius: 999px;
+    background: var(--papel); color: var(--suave);
+  }
+  .etiqueta.verde { background: #e6f4ec; color: var(--verde); }
+  .etiqueta.ambar { background: #fdf3e0; color: var(--ambar); }
+  .etiqueta.rojo  { background: #fbeceb; color: var(--rojo); }
+
+  ul { margin: 0 0 .6em; padding-left: 5mm; }
+  li { margin-bottom: .3em; }
+  .lista-limpia { list-style: none; padding-left: 0; }
+
+  .roles { display: flex; gap: 4mm; margin: 5mm 0; }
+  .rol {
+    flex: 1; border: 1px solid var(--borde); border-radius: 6px;
+    padding: 4mm; page-break-inside: avoid;
+  }
+  .rol .quien { font-size: 11pt; font-weight: 650; margin-bottom: 1mm; }
+  .rol .como { font-size: 8.5pt; color: var(--tenue); margin-bottom: 2.5mm; }
+  .rol ul { font-size: 9pt; padding-left: 4mm; }
+
+  .pie-doc {
+    margin-top: 8mm; padding-top: 3mm;
+    border-top: 1px solid var(--borde);
+    font-size: 8.5pt; color: var(--tenue);
+  }
+</style>
+</head>
+<body>
+
+<!-- =================== PORTADA =================== -->
+<section class="portada">
+  <svg class="reloj" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="7"/>
+    <path d="M50 50 L50 26" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+    <path d="M50 50 L32 41" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  </svg>
+  <h1>Registro de jornada</h1>
+  <p class="sub">
+    Guía de uso de la plataforma de fichaje.
+    Qué ve y qué puede hacer cada uno de los cuatro roles.
+  </p>
+  <hr>
+  <div class="pie">
+    <strong>Documento de uso interno</strong>
+    Capturas tomadas de la aplicación en funcionamiento, sobre datos de ejemplo.<br>
+    Empresa de referencia: Soldaduras Pérez S.L., tres trabajadores.<br>
+    10 de septiembre de 2026
+  </div>
+</section>
+
+<!-- =================== LOS ROLES =================== -->
+<section class="seccion">
+  <span class="rotulo">Antes de empezar</span>
+  <h2>Cuatro roles, cuatro pantallas distintas</h2>
+  <p class="entradilla">
+    La plataforma la usan personas muy distintas: alguien que ficha con guantes puestos
+    y alguien que cierra el mes de cinco empresas. Cada rol ve exactamente lo que
+    necesita y nada más.
+  </p>
+
+  <div class="roles">
+    <div class="rol">
+      <div class="quien">Trabajador</div>
+      <div class="como">Código de empresa + PIN</div>
+      <ul>
+        <li>Fichar entrada, pausa y salida</li>
+        <li>Ver sus fichajes</li>
+        <li>Pedir correcciones</li>
+        <li>Solicitar vacaciones</li>
+        <li>Ver <em>sus</em> incidencias</li>
+      </ul>
+    </div>
+    <div class="rol">
+      <div class="quien">Empresa</div>
+      <div class="como">Enlace al correo</div>
+      <ul>
+        <li>Quién está dentro</li>
+        <li>Alta y baja de plantilla</li>
+        <li>Calendario y horarios</li>
+        <li>Corregir fichajes</li>
+        <li>Informes y exportación</li>
+      </ul>
+    </div>
+    <div class="rol">
+      <div class="quien">Gestoría</div>
+      <div class="como">Enlace al correo</div>
+      <ul>
+        <li>Todas sus empresas</li>
+        <li>Semáforo de estado</li>
+        <li>Entrar en cualquiera</li>
+        <li>Cierre de varias a la vez</li>
+        <li>Alta de empresa</li>
+      </ul>
+    </div>
+    <div class="rol">
+      <div class="quien">Inspección</div>
+      <div class="como">Token con caducidad</div>
+      <ul>
+        <li>Sólo lectura</li>
+        <li>Una sola empresa</li>
+        <li>Registros y trazas</li>
+        <li>Verificación de integridad</li>
+      </ul>
+    </div>
+  </div>
+
+</section>
+
+<section class="seccion">
+  <span class="rotulo">Antes de empezar</span>
+  <h2>Dos formas de entrar</h2>
+  <p class="entradilla">
+    El trabajador y los paneles entran por caminos distintos, y es a propósito:
+    muchos trabajadores no tienen correo de empresa, y pedirles una contraseña es
+    garantía de que dejan de fichar.
+  </p>
+
+  <table>
+    <thead><tr><th>Quién</th><th>Cómo entra</th><th>Cuánto dura la sesión</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Trabajador</td>
+        <td>Teclea el código de su empresa, se elige de una lista y marca un PIN de seis dígitos</td>
+        <td>Meses. En su propio móvil no vuelve a identificarse</td>
+      </tr>
+      <tr>
+        <td>Empresa y gestoría</td>
+        <td>Escribe su correo y recibe un enlace de acceso. No hay contraseña</td>
+        <td>Doce horas</td>
+      </tr>
+      <tr>
+        <td>Inspección</td>
+        <td>Token que genera la empresa o la gestoría, de un solo uso y con caducidad</td>
+        <td>Lo que se haya fijado, hasta 90 días</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <figure class="escritorio-medio">
+    <img src="capturas/c1-entrar.png" alt="Pantalla de acceso por correo">
+    <figcaption>
+      Acceso de empresa y gestoría. El enlace caduca en quince minutos y sólo sirve una vez.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- =================== TRABAJADOR =================== -->
+<section class="seccion">
+  <span class="rotulo">Rol 1 de 4</span>
+  <h2>El trabajador</h2>
+  <p class="entradilla">
+    Es quien más veces al día abre la aplicación y quien menos tiempo tiene para
+    entenderla. Toda la pantalla principal es un botón: sin menús, sin pasos
+    intermedios y sin formación previa. Debe poder usarse con una mano y con
+    guantes puestos.
+  </p>
+
+  <h3><span class="num">1</span>Entrar la primera vez</h3>
+  <p>
+    Sólo se hace una vez por dispositivo. Después, la aplicación abre directamente
+    en el botón de fichar.
+  </p>
+
+  <div class="tira">
+    <figure>
+      <img src="capturas/t1-codigo.png" alt="Introducir el código de empresa">
+      <figcaption>El código se lo da la empresa. Queda recordado.</figcaption>
+    </figure>
+    <figure>
+      <img src="capturas/t2-elegir.png" alt="Elegir trabajador de la lista">
+      <figcaption>Se toca el nombre propio en la lista.</figcaption>
+    </figure>
+    <figure>
+      <img src="capturas/t3-pin.png" alt="Teclado numérico del PIN">
+      <figcaption>Teclado propio, con teclas grandes.</figcaption>
+    </figure>
+  </div>
+
+  <div class="nota">
+    <span class="titulo">Por qué un teclado propio y no el del móvil</span>
+    El teclado del sistema es pequeño, aparece y desaparece solo, y con guantes es
+    inservible. Éste ocupa media pantalla y no se mueve.
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">2</span>Fichar</h3>
+  <p>
+    El botón cambia de color y de texto según la situación. No hay que elegir nada:
+    lo que toca en cada momento es lo que pone el botón.
+  </p>
+
+  <div class="tira">
+    <figure>
+      <img src="capturas/t4-fuera.png" alt="Botón verde: fichar entrada">
+      <figcaption><strong>Fuera.</strong> Verde: fichar entrada.</figcaption>
+    </figure>
+    <figure>
+      <img src="capturas/t5-dentro.png" alt="Botón rojo: fichar salida">
+      <figcaption><strong>Trabajando.</strong> Rojo: fichar salida. Debajo, iniciar pausa.</figcaption>
+    </figure>
+    <figure>
+      <img src="capturas/t6-pausa.png" alt="Botón ámbar: terminar pausa">
+      <figcaption><strong>En pausa.</strong> Ámbar: terminar pausa.</figcaption>
+    </figure>
+  </div>
+
+  <p style="margin-left:9mm; margin-top:4mm">
+    Debajo del botón aparecen los fichajes del día y los de los últimos días, para
+    que el trabajador vea de inmediato que ha quedado registrado y no tenga que
+    fiarse.
+  </p>
+
+  <div class="nota regla">
+    <span class="titulo">La hora la pone el servidor, no el móvil</span>
+    <p>
+      Cambiar la hora del teléfono no cambia el fichaje. El sello temporal lo pone
+      siempre el servidor, en horario universal, y la zona horaria de la empresa se
+      guarda aparte. Es lo que hace que el registro sirva como prueba.
+    </p>
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">3</span>Fichar sin cobertura</h3>
+  <p>
+    En una nave con paredes de hormigón, quedarse sin línea no es un caso raro: es
+    el caso de todos los días. La aplicación sigue funcionando.
+  </p>
+
+  <div class="bloque">
+    <figure class="movil-ancho">
+      <img src="capturas/t7-offline.png" alt="Aviso de fichaje pendiente de sincronizar">
+      <figcaption>
+        Sin cobertura, el fichaje se guarda en el propio teléfono y se avisa de que
+        está pendiente. En cuanto vuelve la línea se envía solo.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="nota regla">
+    <span class="titulo">Qué pasa con la hora de un fichaje diferido</span>
+    <p>
+      Se guardan las dos: la que declaró el teléfono y la de llegada al servidor. El
+      registro queda marcado como <strong>diferido</strong> y pertenece al día en que
+      se fichó, no al día en que se sincronizó. Un fichaje de las 22:00 que llega a
+      las 00:10 sigue siendo del día anterior.
+    </p>
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">4</span>Consultar y pedir correcciones</h3>
+  <p>
+    El trabajador ve su mes completo y puede descargarse su propio registro en PDF
+    sin pedírselo a nadie. El artículo 34.9 le reconoce ese derecho de acceso, y
+    hacerlo depender del jefe lo convertiría en un favor.
+  </p>
+
+  <div class="bloque">
+    <figure class="movil">
+      <img src="capturas/t8-mis-fichajes.png" alt="Mis fichajes, mes en curso">
+      <figcaption>
+        Cada fichaje es un botón: al tocarlo se pide su corrección. «Falta un fichaje»
+        es para el día en que se olvidó registrar alguno.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="nota aviso">
+    <span class="titulo">El trabajador solicita; no corrige</span>
+    <p>
+      Quien aplica la corrección es la empresa o la gestoría. Y cuando la aplica, el
+      fichaje original <strong>no se borra</strong>: se añade uno nuevo que lo
+      corrige, dejando por escrito quién lo cambió, cuándo y por qué. Los dos quedan
+      en la traza.
+    </p>
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">5</span>Vacaciones y ausencias</h3>
+
+  <div class="tira">
+    <figure>
+      <img src="capturas/t9-ausencias.png" alt="Saldo de vacaciones e historial">
+      <figcaption>
+        Saldo de días, historial y solicitud con selector de fechas. Una solicitud
+        aún sin resolver se puede cancelar.
+      </figcaption>
+    </figure>
+    <figure>
+      <img src="capturas/t10-incidencias.png" alt="Mis incidencias">
+      <figcaption>
+        Cada trabajador ve <em>sus</em> incidencias y sólo las suyas.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="nota">
+    <span class="titulo">Por qué el trabajador ve sus propias incidencias</span>
+    <p>
+      Es lo que hace que se corrijan solas: quien olvidó fichar la salida el martes lo
+      ve el miércoles y lo arregla, sin que nadie se lo tenga que reclamar. Y es
+      también lo que evita que el módulo se convierta en un panel de vigilancia,
+      porque nadie ve las de los demás.
+    </p>
+  </div>
+
+  <div class="nota aviso">
+    <span class="titulo">Lo que el saldo de vacaciones no hace</span>
+    <p>
+      Los días anuales son un número que fija la empresa o la gestoría a mano. El
+      sistema no calcula devengos proporcionales, ni antigüedad, ni arrastres del año
+      anterior: eso depende de convenio y es justo donde se hunde un proyecto como
+      éste. Sí descuenta fines de semana y festivos del calendario de la empresa.
+    </p>
+  </div>
+</section>
+
+<!-- =================== EMPRESA =================== -->
+<section class="seccion">
+  <span class="rotulo">Rol 2 de 4</span>
+  <h2>El panel de empresa</h2>
+  <p class="entradilla">
+    Lo abre alguien que entra aquí una vez al mes, así que cada pantalla dice qué
+    hace y ninguna acción queda sin explicar. La gestoría usa exactamente este mismo
+    panel cuando entra en una de sus empresas: la cabecera lo indica con
+    «vista de gestoría».
+  </p>
+
+  <h3><span class="num">1</span>Quién está dentro ahora mismo</h3>
+  <p>Es la pantalla de inicio, porque es la pregunta que se hace a diario.</p>
+
+  <figure class="escritorio">
+    <img src="capturas/e1-ahora.png" alt="Panel de inicio: quién está dentro">
+    <figcaption>
+      Las cuatro cifras de arriba son el estado de la empresa de un vistazo. Los
+      contadores del menú avisan de lo que espera respuesta.
+    </figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th>Estado</th><th>Qué significa</th></tr></thead>
+    <tbody>
+      <tr><td><span class="etiqueta verde">trabajando</span></td><td>Ha fichado entrada y no ha fichado salida</td></tr>
+      <tr><td><span class="etiqueta ambar">en pausa</span></td><td>Ha iniciado una pausa y no la ha cerrado</td></tr>
+      <tr><td><span class="etiqueta">fuera</span></td><td>No ha entrado hoy, o ya ha fichado la salida</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">2</span>Plantilla</h3>
+  <p>
+    Alta, baja y edición de trabajadores. El PIN se asigna aquí y se le da al
+    trabajador: se guarda cifrado y no se puede volver a consultar, sólo cambiar.
+  </p>
+
+  <figure class="escritorio">
+    <img src="capturas/e2-plantilla.png" alt="Gestión de la plantilla">
+    <figcaption>
+      Cada trabajador lleva su horario teórico y sus días de vacaciones al año.
+    </figcaption>
+  </figure>
+
+  <div class="nota regla">
+    <span class="titulo">Dar de baja no borra nada</span>
+    <p>
+      La conservación obligatoria es de cuatro años desde cada registro, y vale
+      también para quien ya no está en plantilla. Dar de baja marca la fecha y saca
+      al trabajador de las listas del día a día; sus fichajes siguen donde estaban.
+    </p>
+  </div>
+
+  <div class="nota">
+    <span class="titulo">El horario teórico se versiona, no se reescribe</span>
+    <p>
+      Al cambiar el horario de alguien no se pisa el anterior: se le pone fecha de
+      fin y entra el nuevo desde la fecha que se indique. Así los informes de meses
+      pasados siguen cuadrando con el horario que de verdad regía entonces.
+    </p>
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">3</span>Calendario laboral</h3>
+  <p>
+    Festivos nacionales, autonómicos, locales y cierres de empresa. Lo rellena la
+    gestoría, empresa por empresa y año por año.
+  </p>
+
+  <figure class="escritorio">
+    <img src="capturas/e3-calendario.png" alt="Calendario laboral del año">
+    <figcaption>
+      El sistema no intenta ser fuente de verdad de los festivos locales: hay
+      demasiados y cambian cada año.
+    </figcaption>
+  </figure>
+
+  <div class="nota">
+    <span class="titulo">Para qué sirve de verdad el calendario</span>
+    <p>
+      Para dos cosas: descontar los festivos de las horas teóricas del periodo, y
+      <strong>callar al motor de incidencias</strong>. Un día marcado como festivo no
+      genera ninguna alerta por falta de fichaje.
+    </p>
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">4</span>Fichajes del mes</h3>
+  <p>
+    La rejilla del mes, trabajador a trabajador. Cada fichaje es un botón: al pulsarlo
+    se corrige o se anula. El botón <code>+</code> añade uno que falta.
+  </p>
+
+  <figure class="escritorio">
+    <img src="capturas/e4-fichajes.png" alt="Rejilla de fichajes del mes">
+    <figcaption>
+      «Verificar integridad» recalcula la cadena de firmas de toda la empresa y dice
+      si algún registro ha sido alterado.
+    </figcaption>
+  </figure>
+
+  <div class="nota aviso">
+    <span class="titulo">Toda corrección exige un motivo</span>
+    <p>
+      No es un campo opcional: sin motivo, la corrección no se guarda. Queda
+      registrado quién la hizo, cuándo y por qué, y el fichaje original permanece
+      visible. Es lo que diferencia una corrección de un borrado con otro nombre.
+    </p>
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">5</span>Solicitudes pendientes</h3>
+  <p>
+    La bandeja: correcciones de fichaje y ausencias esperando respuesta. Es lo que
+    marca en rojo el semáforo de la gestoría, porque significa que alguien espera.
+  </p>
+
+  <figure class="escritorio">
+    <img src="capturas/e5-solicitudes.png" alt="Bandeja de solicitudes pendientes">
+    <figcaption>
+      Aprobar una corrección inserta el fichaje corregido enlazado con el original.
+    </figcaption>
+  </figure>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">6</span>Incidencias</h3>
+  <p>
+    Es la funcionalidad que hace que el empresario abra la aplicación por voluntad
+    propia en lugar de por obligación: detecta los problemas <em>antes</em> de
+    preparar la nómina, no después.
+  </p>
+
+  <figure class="escritorio">
+    <img src="capturas/e6-incidencias.png" alt="Incidencias abiertas de la plantilla">
+    <figcaption>
+      Cada incidencia se marca como resuelta o se ignora. Una vez ignorada no vuelve.
+    </figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th>Familia</th><th>Qué detecta</th><th>Qué necesita</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="etiqueta rojo">estructural</span></td>
+        <td>Salida sin entrada · Jornada sin cerrar · Pausa sin cerrar ·
+            Jornada excesiva · Fichaje duplicado</td>
+        <td>Nada. Sale de los propios fichajes</td>
+      </tr>
+      <tr>
+        <td><span class="etiqueta ambar">expectativa</span></td>
+        <td>Falta de entrada · Salida anticipada · Exceso sobre la jornada
+            teórica, del día y del mes</td>
+        <td>Horario teórico y calendario</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="nota regla">
+    <span class="titulo">Las dos reglas que deciden si esto se usa o se silencia</span>
+    <p>
+      <strong>Una.</strong> Hay una ventana de tolerancia configurable, veinte minutos
+      por defecto. Una alerta que salta porque alguien llega tres minutos tarde se
+      ignora en una semana, y arrastra consigo a todas las demás.
+    </p>
+    <p>
+      <strong>Dos.</strong> No se genera ninguna alerta de expectativa si ese día hay
+      ausencia aprobada, es festivo del calendario de la empresa, o el trabajador está
+      de baja. Nadie incumple un horario el día que tiene vacaciones aprobadas.
+    </p>
+  </div>
+
+  <p style="margin-left:9mm">
+    El motor pasa solo: cada quince minutos revisa el día en curso, y a las 23:50
+    hora local hace el cierre del día. Los avisos van por correo en un resumen diario,
+    o inmediatos si la empresa lo prefiere.
+  </p>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">7</span>Informes y exportación</h3>
+  <p>
+    Selector de periodo —mes, trimestre, semestre o año— con el desglose por
+    trabajador y el total de la empresa. Se descarga en PDF para entregar y archivar,
+    o en CSV para trabajarlo en la hoja de cálculo.
+  </p>
+
+  <figure class="escritorio">
+    <img src="capturas/e7-informes.png" alt="Informe del periodo">
+    <figcaption>
+      Un periodo aún en curso lo dice y calcula las horas teóricas sólo hasta hoy,
+      para no mostrar el déficit de días que todavía no han ocurrido.
+    </figcaption>
+  </figure>
+
+  <div class="nota aviso">
+    <span class="titulo">Nunca se dice «horas extra»</span>
+    <p>
+      La columna se llama <strong>exceso sobre jornada teórica</strong>, y es
+      deliberado. En el momento en que un sistema emite una cifra rotulada como horas
+      extraordinarias está emitiendo un número que puede acabar en una papeleta de
+      conciliación. Si esas horas son extraordinarias, complementarias o compensación
+      por flexibilidad depende del convenio y del contrato, que la plataforma no
+      conoce. <strong>La calificación la hace la gestoría.</strong>
+    </p>
+  </div>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">8</span>Ajustes</h3>
+
+  <figure class="escritorio">
+    <img src="capturas/e8-ajustes.png" alt="Ajustes de la empresa">
+    <figcaption>
+      Tolerancia, umbral de jornada excesiva, canal de avisos, geolocalización y
+      accesos de Inspección.
+    </figcaption>
+  </figure>
+
+  <div class="nota aviso">
+    <span class="titulo">Geolocalización: desactivada por defecto</span>
+    <p>
+      Si se activa, se captura la posición <strong>sólo en el instante del fichaje</strong>
+      y nunca de forma continua. Activarla obliga a dejar por escrito la justificación
+      del tratamiento: el formulario no deja guardarla en blanco. No hay biometría ni
+      reconocimiento facial en ninguna parte de la plataforma, y no los habrá.
+    </p>
+  </div>
+</section>
+
+<!-- =================== GESTORÍA =================== -->
+<section class="seccion">
+  <span class="rotulo">Rol 3 de 4</span>
+  <h2>El panel de gestoría</h2>
+  <p class="entradilla">
+    El panel transversal. Su criterio de éxito es concreto: que la gestoría cierre el
+    mes de cinco empresas sin salir de aquí.
+  </p>
+
+  <h3><span class="num">1</span>Mis empresas, con semáforo</h3>
+
+  <figure class="escritorio">
+    <img src="capturas/g1-empresas.png" alt="Lista de empresas con semáforo">
+    <figcaption>
+      Cada tarjeta entra en el panel de esa empresa, con las mismas capacidades que
+      tendría el empresario.
+    </figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th>Color</th><th>Qué significa</th><th>Qué hacer</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="etiqueta rojo">rojo</span></td>
+        <td>Hay solicitudes sin resolver: correcciones o ausencias</td>
+        <td>Alguien está esperando respuesta. Va primero</td>
+      </tr>
+      <tr>
+        <td><span class="etiqueta ambar">ámbar</span></td>
+        <td>Hay incidencias abiertas</td>
+        <td>Revisar antes de cerrar el mes</td>
+      </tr>
+      <tr>
+        <td><span class="etiqueta verde">verde</span></td>
+        <td>Ni solicitudes ni incidencias</td>
+        <td>Nada. El mes está limpio</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    El orden de gravedad no es casual: una incidencia es un problema de datos, pero
+    una solicitud sin resolver es una persona esperando.
+  </p>
+</section>
+
+<section class="seccion">
+  <h3><span class="num">2</span>Cierre de periodo</h3>
+  <p>
+    Exporta el mismo periodo para varias empresas de una vez, en un único fichero
+    consolidado con una línea por trabajador. Es lo que convierte el cierre de mes en
+    una operación en lugar de cinco.
+  </p>
+
+  <figure class="escritorio">
+    <img src="capturas/g2-cierre.png" alt="Cierre de periodo de varias empresas">
+    <figcaption>
+      Se marcan las empresas que entran y se elige mes, trimestre, semestre o año.
+    </figcaption>
+  </figure>
+
+  <h3><span class="num">3</span>Alta de empresa</h3>
+
+  <figure class="escritorio">
+    <img src="capturas/g3-alta.png" alt="Formulario de alta de empresa">
+    <figcaption>
+      El código de fichaje es lo que teclean los trabajadores. Si se deja vacío, se
+      genera solo.
+    </figcaption>
+  </figure>
+
+  <div class="nota">
+    <span class="titulo">Qué se configura al dar de alta</span>
+    <p>
+      La ventana de tolerancia y el umbral de jornada excesiva se fijan aquí y se
+      pueden cambiar después. El correo de la empresa es opcional: sin él, la empresa
+      no entra al panel y todo lo lleva la gestoría, que es una forma perfectamente
+      válida de trabajar.
+    </p>
+  </div>
+</section>
+
+<!-- =================== INSPECCIÓN =================== -->
+<section class="seccion">
+  <span class="rotulo">Rol 4 de 4</span>
+  <h2>El acceso de Inspección</h2>
+  <p class="entradilla">
+    No tiene pantallas propias, y conviene explicar por qué.
+  </p>
+
+  <div class="nota aviso">
+    <span class="titulo">Lo que hay que decir, y no otra cosa</span>
+    <p>
+      El Real Decreto que obligaría a formato exclusivamente digital
+      <strong>no está publicado</strong>. Tuvo dictamen desfavorable del Consejo de
+      Estado en marzo de 2026, se aplazó en julio y el Consejo de Ministros del 1 de
+      septiembre no lo aprobó. Las especificaciones técnicas del acceso remoto de la
+      Inspección irán en una orden ministerial posterior que sigue en fase previa.
+    </p>
+    <p>
+      No existe hoy ninguna certificación oficial de sistemas de fichaje. Cualquiera
+      que afirme que su producto «ya cumple el nuevo decreto» no está siendo preciso.
+    </p>
+  </div>
+
+  <h3>Lo que sí está hecho</h3>
+  <p>
+    No se puede implementar una integración que no tiene especificación. Lo que sí se
+    ha hecho es dejar la puerta puesta, para que el día que salga la orden sea un
+    módulo añadido y no una migración de cuatro años de histórico.
+  </p>
+
+  <table>
+    <thead><tr><th>Preparado</th><th>Para qué</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Cadena de firmas</td>
+        <td>Cada fichaje va firmado con el anterior de su empresa. Es previsiblemente
+            el núcleo de lo que exija la orden sobre integridad y no manipulación</td>
+      </tr>
+      <tr>
+        <td>Campos del borrador</td>
+        <td>Modalidad presencial o a distancia, naturaleza de la hora y totalización
+            diaria y mensual ya existen en la base de datos, vacíos</td>
+      </tr>
+      <tr>
+        <td>Log de accesos</td>
+        <td>Quién consultó qué y cuándo, desde el primer día</td>
+      </tr>
+      <tr>
+        <td>Cuenta de inspección</td>
+        <td>Sólo lectura, limitada a una empresa y con caducidad. Un inspector puede
+            entrar sin ver el resto de la plataforma</td>
+      </tr>
+      <tr>
+        <td>Exportación con adaptadores</td>
+        <td>Un envío periódico o una consulta remota serán un adaptador más</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <span class="titulo">Cómo se cuenta comercialmente</span>
+    <p>
+      «El sistema cumple lo que está vigente hoy: registro diario, conservación de
+      cuatro años y puesta a disposición. Para lo que venga, la base de datos ya
+      guarda los campos del borrador y los registros van firmados en cadena, así que
+      la adaptación será un módulo añadido y no una migración. Va incluida en el
+      mantenimiento.»
+    </p>
+  </div>
+</section>
+
+<!-- =================== REGLAS =================== -->
+<section class="seccion">
+  <span class="rotulo">Anexo</span>
+  <h2>Reglas que no se ven en pantalla</h2>
+  <p class="entradilla">
+    Seis decisiones que no aparecen en ninguna captura y que son las que hacen que
+    esto aguante el cambio normativo que viene. Cuestan poco hoy y son carísimas de
+    introducir con dos años de datos acumulados.
+  </p>
+
+  <h3>Un fichaje no se puede modificar ni borrar. Nunca.</h3>
+  <p>
+    No es sólo que la aplicación no lo ofrezca: la base de datos lo rechaza. Corregir
+    significa añadir un registro nuevo que apunta al original y guarda autor, motivo y
+    momento del cambio. Anular, lo mismo. El original permanece siempre visible.
+  </p>
+
+  <h3>Cada fichaje va firmado con el anterior de su empresa</h3>
+  <p>
+    Cada registro guarda una firma calculada sobre la firma del anterior más sus
+    propios datos. Alterar un fichaje de hace seis meses rompería la cadena de todos
+    los posteriores, y el botón «Verificar integridad» lo señalaría. La cadena es por
+    empresa, para que ninguna dependa de otra.
+  </p>
+
+  <h3>La hora es siempre del servidor</h3>
+  <p>
+    En horario universal, con la zona horaria guardada aparte. Nunca se confía en el
+    reloj del dispositivo. El cambio de hora de marzo y de octubre está contemplado y
+    probado.
+  </p>
+
+  <h3>Los datos de una empresa no pueden salir de su empresa</h3>
+  <p>
+    El aislamiento no se aplica pantalla por pantalla, sino en la capa por la que
+    pasan todas las consultas sin excepción. Una consulta que se olvidara del filtro
+    no llega a ejecutarse: se rechaza antes.
+  </p>
+
+  <h3>Toda salida de datos pasa por un solo sitio</h3>
+  <p>
+    Hoy hay dos formatos, PDF y CSV, y están versionados: un informe emitido hace un
+    año se puede reproducir tal como salió. La futura integración con la Inspección
+    será un tercer formato en esa misma lista.
+  </p>
+
+  <h3>Lo que nunca se guarda</h3>
+  <ul>
+    <li><strong>El motivo médico de una baja.</strong> Se guardan tipo y fechas; el
+        diagnóstico no entra en la base de datos bajo ningún concepto. Es categoría
+        especial del RGPD. Si alguien lo escribe, se descarta.</li>
+    <li><strong>Datos biométricos.</strong> Ni huella, ni cara, ni nada parecido.</li>
+    <li><strong>Posición en continuo.</strong> Como mucho, un punto en el instante del
+        fichaje, si la empresa lo ha activado y justificado.</li>
+  </ul>
+
+  <div class="nota regla">
+    <span class="titulo">Conservación</span>
+    <p>
+      Cuatro años desde cada registro, como exige el artículo 34.9 del Estatuto de los
+      Trabajadores. Dentro de ese plazo no se borra nada, ni al dar de baja a un
+      trabajador ni al dar de baja a una empresa.
+    </p>
+  </div>
+
+  <h3>Y lo que esta herramienta no hace</h3>
+  <p>
+    Esta lista importa tanto como la de funcionalidades, y se dice en la venta, no
+    cuando el primer cliente lo pida:
+  </p>
+  <ul>
+    <li>Cuadrantes y turnos rotativos. Es la frontera dura.</li>
+    <li>Nóminas y cualquier cálculo salarial.</li>
+    <li>Biometría, reconocimiento facial y geovallado continuo.</li>
+    <li>Aplicación nativa en tiendas: es una web instalable.</li>
+    <li>Control de acceso físico, gestión documental, evaluación del desempeño y el
+        resto de la suite de recursos humanos.</li>
+    <li>Cálculo automático de saldos de vacaciones según convenio.</li>
+  </ul>
+
+  <div class="pie-doc">
+    Guía de uso de la plataforma de registro de jornada · Documento de uso interno ·
+    10 de septiembre de 2026.<br>
+    Las capturas están tomadas de la aplicación en funcionamiento, sobre datos de
+    ejemplo. El estado normativo descrito es el vigente a esa fecha y debe revisarse
+    cuando se publique el Real Decreto.
+  </div>
+</section>
+
+</body>
+</html>

@@ -6,7 +6,7 @@
  * fuera de hoy es peor que no mostrar nada. Lo que sí funciona sin cobertura es
  * la cola: ver public/js/cola.js.
  */
-const VERSION = 'v1';
+const VERSION = 'v4';
 const CACHE = `armazon-${VERSION}`;
 
 const ARMAZON = [
