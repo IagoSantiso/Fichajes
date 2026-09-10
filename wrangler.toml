@@ -4,10 +4,17 @@ compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
 # La PWA se sirve como assets estáticos desde el propio Worker.
+#
+# not_found_handling se deja en "none" a propósito: esto no es una aplicación
+# de página única, son cuatro páginas reales (/, /entrar/, /empresa/,
+# /gestoria/). Con "single-page-application", cualquier ruta desconocida
+# —incluida una de API que el Worker no reconozca— devolvía la pantalla de
+# fichaje en lugar de un error, que es la peor forma de enterarse de que algo
+# está mal desplegado.
 [assets]
 directory = "./public"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
+not_found_handling = "none"
 
 [[d1_databases]]
 binding = "DB"
