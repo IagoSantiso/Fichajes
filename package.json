@@ -10,7 +10,8 @@
     "db:local": "wrangler d1 migrations apply fichajes --local",
     "db:remoto": "wrangler d1 migrations apply fichajes --remote",
     "semilla": "wrangler d1 execute fichajes --local --file=./semillas/desarrollo.sql",
-    "test": "node --test --experimental-sqlite pruebas/*.test.js"
+    "test": "node --test --experimental-sqlite pruebas/*.test.js",
+    "test:navegador": "node pruebas/navegador/despliegue-visible.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
