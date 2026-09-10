@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f5fbf">
+<title>Panel de gestoría · Registro de jornada</title>
+<link rel="icon" href="/iconos/icono-192.png">
+<link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div>
+    <span class="marca" id="marca">Cargando…</span>
+    <nav>
+      <button data-vista="empresas" aria-current="page">Mis empresas</button>
+      <button data-vista="cierre">Cierre de periodo</button>
+      <button data-vista="alta">Alta de empresa</button>
+    </nav>
+    <button class="secundario pequeno" id="salir">Salir</button>
+  </div>
+</header>
+
+<main class="contenedor">
+  <div id="aviso" class="aviso" hidden></div>
+
+  <section id="vista-empresas">
+    <h1>Mis empresas</h1>
+    <p class="ayuda">
+      <span class="punto rojo"></span> hay solicitudes esperando ·
+      <span class="punto ambar"></span> incidencias abiertas ·
+      <span class="punto verde"></span> al día
+    </p>
+    <div id="rejilla-empresas" class="rejilla-empresas"></div>
+  </section>
+
+  <section id="vista-cierre" hidden>
+    <h1>Cierre de periodo</h1>
+    <div class="tarjeta">
+      <p class="ayuda">
+        Exporta el mismo periodo para varias empresas de una vez, en un único fichero
+        consolidado con una línea por trabajador.
+      </p>
+      <div class="fila">
+        <div class="campo">
+          <label for="c-periodo">Periodo</label>
+          <select id="c-periodo">
+            <option value="mes">Mes</option>
+            <option value="trimestre">Trimestre</option>
+            <option value="semestre">Semestre</option>
+            <option value="anio">Año</option>
+          </select>
+        </div>
+        <div class="campo"><label for="c-anio">Año</label><input type="number" id="c-anio" min="2019" max="2099"></div>
+        <div class="campo"><label for="c-indice">Número</label><input type="number" id="c-indice" min="1" max="12"></div>
+        <div class="campo">
+          <label for="c-formato">Formato</label>
+          <select id="c-formato"><option value="csv">CSV</option><option value="pdf">PDF</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <h2>Empresas incluidas</h2>
+      <div id="seleccion-empresas"></div>
+      <button id="exportar-masivo" style="margin-top:1rem">Exportar seleccionadas</button>
+    </div>
+  </section>
+
+  <section id="vista-alta" hidden>
+    <h1>Alta de empresa</h1>
+    <div class="tarjeta">
+      <form id="form-empresa">
+        <div class="fila">
+          <div class="campo"><label for="n-nombre">Nombre</label><input id="n-nombre" required></div>
+          <div class="campo"><label for="n-cif">CIF</label><input id="n-cif"></div>
+        </div>
+        <div class="campo"><label for="n-direccion">Dirección</label><input id="n-direccion"></div>
+        <div class="fila">
+          <div class="campo">
+            <label for="n-codigo">Código de fichaje</label>
+            <input id="n-codigo" placeholder="Se genera solo si lo deja vacío">
+            <p class="ayuda">Es lo que teclean los trabajadores en la aplicación, con su PIN.</p>
+          </div>
+          <div class="campo">
+            <label for="n-email">Correo de la empresa</label>
+            <input type="email" id="n-email">
+            <p class="ayuda">Con él entrará al panel por enlace mágico. Opcional.</p>
+          </div>
+        </div>
+        <div class="fila">
+          <div class="campo">
+            <label for="n-tolerancia">Tolerancia (minutos)</label>
+            <input type="number" id="n-tolerancia" value="20" min="0" max="120">
+          </div>
+          <div class="campo">
+            <label for="n-jornada">Aviso de jornada excesiva (horas)</label>
+            <input type="number" id="n-jornada" value="12" min="6" max="24" step="0.5">
+          </div>
+          <div class="campo">
+            <label for="n-avisos">Correo para avisos de incidencias</label>
+            <input type="email" id="n-avisos">
+          </div>
+        </div>
+        <button type="submit">Dar de alta</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="/js/gestoria.js"></script>
+</body>
+</html>

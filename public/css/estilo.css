@@ -1,0 +1,231 @@
+/*
+ * Estilos de la plataforma.
+ *
+ * Dos criterios mandan sobre cualquier otra consideración estética:
+ *  - La pantalla de fichaje se usa con una mano y con guantes puestos. El
+ *    botón ocupa lo que haga falta y el contraste es alto porque se mira a
+ *    pleno sol en una nave o en una obra.
+ *  - Los paneles los usa gente que abre esto una vez al mes. Nada de menús
+ *    anidados ni de iconos sin etiqueta.
+ */
+
+:root {
+  --tinta: #16191d;
+  --tinta-suave: #5b6672;
+  --fondo: #f5f6f8;
+  --superficie: #ffffff;
+  --borde: #dde1e7;
+  --acento: #1f5fbf;
+  --acento-oscuro: #17488f;
+  --verde: #1c7a4a;
+  --verde-claro: #e6f4ec;
+  --ambar: #9a6206;
+  --ambar-claro: #fdf3e0;
+  --rojo: #b3261e;
+  --rojo-claro: #fbeceb;
+  --radio: 12px;
+  --sombra: 0 1px 2px rgba(16, 24, 40, .06), 0 4px 12px rgba(16, 24, 40, .05);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--tinta);
+  background: var(--fondo);
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { line-height: 1.25; margin: 0 0 .5rem; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
+p { margin: 0 0 .75rem; }
+a { color: var(--acento); }
+
+.contenedor { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+.centrado { max-width: 460px; margin: 0 auto; padding: 1rem; }
+
+/* --- Cabecera ----------------------------------------------------------- */
+
+.barra {
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.barra > div {
+  max-width: 1100px; margin: 0 auto; padding: .6rem 1rem;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.barra .marca { font-weight: 650; margin-right: auto; }
+.barra nav { display: flex; gap: .25rem; flex-wrap: wrap; }
+.barra nav button {
+  background: none; border: 0; padding: .5rem .7rem; border-radius: 8px;
+  font: inherit; color: var(--tinta-suave); cursor: pointer;
+}
+.barra nav button[aria-current="page"] { background: var(--fondo); color: var(--tinta); font-weight: 600; }
+
+/* --- Tarjetas y formularios --------------------------------------------- */
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--sombra);
+}
+
+label { display: block; font-weight: 600; font-size: .875rem; margin-bottom: .25rem; }
+input, select, textarea {
+  width: 100%; padding: .65rem .75rem; font: inherit;
+  border: 1px solid var(--borde); border-radius: 8px; background: var(--superficie);
+  color: var(--tinta);
+}
+input:focus, select:focus, textarea:focus, button:focus-visible {
+  outline: 3px solid rgba(31, 95, 191, .35); outline-offset: 1px; border-color: var(--acento);
+}
+.campo { margin-bottom: .85rem; }
+.ayuda { font-size: .8125rem; color: var(--tinta-suave); margin-top: .25rem; }
+.fila { display: flex; gap: .75rem; flex-wrap: wrap; align-items: flex-end; }
+.fila > * { flex: 1 1 160px; }
+
+button {
+  font: inherit; cursor: pointer;
+  border-radius: 8px; border: 1px solid transparent; padding: .65rem 1rem;
+  background: var(--acento); color: #fff; font-weight: 600;
+}
+button:hover { background: var(--acento-oscuro); }
+button[disabled] { opacity: .5; cursor: not-allowed; }
+button.secundario { background: var(--superficie); color: var(--tinta); border-color: var(--borde); }
+button.secundario:hover { background: var(--fondo); }
+button.peligro { background: var(--rojo); }
+button.pequeno { padding: .35rem .6rem; font-size: .8125rem; }
+
+/* --- Botón de fichaje: el elemento central de la aplicación -------------- */
+
+.fichaje { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; }
+
+.boton-fichar {
+  width: 100%;
+  min-height: 42vh;
+  border-radius: 20px;
+  border: none;
+  font-size: clamp(1.6rem, 7vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .5rem;
+  /* Sin transición de color: en un móvil con guantes, la respuesta debe ser
+     inmediata y evidente. */
+  transition: transform .06s ease;
+}
+.boton-fichar:active { transform: scale(.985); }
+.boton-fichar .sub { font-size: 1rem; font-weight: 500; opacity: .9; }
+.boton-fichar[data-accion="entrada"] { background: var(--verde); }
+.boton-fichar[data-accion="salida"] { background: var(--rojo); }
+.boton-fichar[data-accion="inicio_pausa"],
+.boton-fichar[data-accion="fin_pausa"] { background: var(--ambar); }
+.boton-fichar[disabled] { background: var(--tinta-suave); }
+
+.boton-secundario-fichaje {
+  width: 100%; min-height: 4rem; font-size: 1.1rem;
+  background: var(--superficie); color: var(--tinta); border: 2px solid var(--borde);
+}
+
+.estado-actual {
+  text-align: center; font-size: 1.05rem; color: var(--tinta-suave);
+}
+.estado-actual strong { color: var(--tinta); }
+
+/* --- Listas y tablas ---------------------------------------------------- */
+
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .6rem 0; border-bottom: 1px solid var(--borde);
+}
+.lista li:last-child { border-bottom: 0; }
+.lista .hora { font-variant-numeric: tabular-nums; font-weight: 650; min-width: 3.5rem; }
+.lista .crece { flex: 1; }
+
+.tabla-envoltorio { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9375rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--borde); }
+th { font-size: .8125rem; text-transform: uppercase; letter-spacing: .03em; color: var(--tinta-suave); }
+td.numero, th.numero { text-align: right; font-variant-numeric: tabular-nums; }
+tr.total td { font-weight: 700; border-top: 2px solid var(--tinta-suave); }
+
+/* --- Etiquetas de estado ------------------------------------------------ */
+
+.etiqueta {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .8125rem; font-weight: 600; padding: .15rem .5rem; border-radius: 999px;
+  background: var(--fondo); color: var(--tinta-suave); border: 1px solid var(--borde);
+}
+.etiqueta.verde { background: var(--verde-claro); color: var(--verde); border-color: transparent; }
+.etiqueta.ambar { background: var(--ambar-claro); color: var(--ambar); border-color: transparent; }
+.etiqueta.rojo { background: var(--rojo-claro); color: var(--rojo); border-color: transparent; }
+
+.punto { width: .6rem; height: .6rem; border-radius: 50%; display: inline-block; }
+.punto.verde { background: var(--verde); }
+.punto.ambar { background: var(--ambar); }
+.punto.rojo { background: var(--rojo); }
+
+/* --- Avisos ------------------------------------------------------------- */
+
+.aviso {
+  padding: .7rem .9rem; border-radius: 8px; margin-bottom: 1rem;
+  border: 1px solid var(--borde); background: var(--superficie); font-size: .9375rem;
+}
+.aviso.error { background: var(--rojo-claro); border-color: transparent; color: var(--rojo); }
+.aviso.exito { background: var(--verde-claro); border-color: transparent; color: var(--verde); }
+.aviso.pendiente { background: var(--ambar-claro); border-color: transparent; color: var(--ambar); }
+
+.vacio { text-align: center; color: var(--tinta-suave); padding: 2rem 1rem; }
+
+/* --- Teclado numérico del PIN ------------------------------------------- */
+
+.teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-top: 1rem; }
+.teclado button {
+  min-height: 4.2rem; font-size: 1.6rem; font-weight: 600;
+  background: var(--superficie); color: var(--tinta); border: 1px solid var(--borde);
+}
+.teclado button:hover { background: var(--fondo); }
+.puntos-pin { display: flex; gap: .75rem; justify-content: center; margin: 1.25rem 0; }
+.puntos-pin span {
+  width: 1rem; height: 1rem; border-radius: 50%;
+  border: 2px solid var(--tinta-suave); background: transparent;
+}
+.puntos-pin span.lleno { background: var(--tinta); border-color: var(--tinta); }
+
+/* --- Rejilla y semáforo ------------------------------------------------- */
+
+/* Rejilla de tarjetas informativas: no son pulsables. */
+.rejilla-tarjetas { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.rejilla-tarjetas .tarjeta { margin: 0; }
+
+/* Rejilla de empresas: cada tarjeta entra en el panel de esa empresa. */
+.rejilla-empresas { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.rejilla-empresas .tarjeta { margin: 0; cursor: pointer; }
+.rejilla-empresas .tarjeta:hover { border-color: var(--acento); }
+
+.oculto { display: none !important; }
+.solo-lectura { pointer-events: none; opacity: .6; }
+
+@media (max-width: 640px) {
+  .barra > div { padding: .5rem .75rem; }
+  .contenedor { padding: .75rem; }
+  th, td { padding: .4rem .45rem; font-size: .875rem; }
+}
+
+/* Colores de texto para las cifras de resumen. */
+.texto-verde { color: var(--verde); }
+.texto-ambar { color: var(--ambar); }
+.texto-rojo  { color: var(--rojo); }

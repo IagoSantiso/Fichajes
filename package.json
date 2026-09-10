@@ -1,0 +1,18 @@
+{
+  "name": "fichajes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma multiempresa de registro de jornada (art. 34.9 ET)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 migrations apply fichajes --local",
+    "db:remoto": "wrangler d1 migrations apply fichajes --remote",
+    "semilla": "wrangler d1 execute fichajes --local --file=./semillas/desarrollo.sql",
+    "test": "node --test --experimental-sqlite pruebas/*.test.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

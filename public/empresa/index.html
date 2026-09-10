@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f5fbf">
+<title>Panel de empresa · Registro de jornada</title>
+<link rel="icon" href="/iconos/icono-192.png">
+<link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <div>
+    <span class="marca" id="marca">Cargando…</span>
+    <nav>
+      <button data-vista="presentes" aria-current="page">Ahora mismo</button>
+      <button data-vista="plantilla">Plantilla</button>
+      <button data-vista="calendario">Calendario</button>
+      <button data-vista="rejilla">Fichajes</button>
+      <button data-vista="bandeja">Solicitudes <span id="contador-bandeja" class="etiqueta rojo oculto"></span></button>
+      <button data-vista="incidencias">Incidencias <span id="contador-incidencias" class="etiqueta ambar oculto"></span></button>
+      <button data-vista="informes">Informes</button>
+      <button data-vista="ajustes">Ajustes</button>
+    </nav>
+    <button class="secundario pequeno" id="salir">Salir</button>
+  </div>
+</header>
+
+<main class="contenedor">
+  <div id="aviso" class="aviso" hidden></div>
+
+  <section id="vista-presentes">
+    <h1>Quién está dentro ahora mismo</h1>
+    <div id="tarjetas-resumen" class="rejilla-tarjetas" style="margin-bottom:1rem"></div>
+    <div class="tarjeta"><div id="tabla-presentes"></div></div>
+  </section>
+
+  <section id="vista-plantilla" hidden>
+    <h1>Plantilla</h1>
+    <div class="tarjeta">
+      <h2>Alta de trabajador</h2>
+      <form id="form-empleado">
+        <div class="fila">
+          <div class="campo"><label for="e-nombre">Nombre</label><input id="e-nombre" required></div>
+          <div class="campo"><label for="e-apellidos">Apellidos</label><input id="e-apellidos"></div>
+          <div class="campo"><label for="e-documento">Documento</label><input id="e-documento"></div>
+        </div>
+        <div class="fila">
+          <div class="campo">
+            <label for="e-pin">PIN de seis dígitos</label>
+            <input id="e-pin" inputmode="numeric" pattern="\d{6}" maxlength="6" required>
+            <p class="ayuda">Se lo dará al trabajador. Se guarda cifrado y no se puede consultar después.</p>
+          </div>
+          <div class="campo">
+            <label for="e-jornada">Jornada</label>
+            <select id="e-jornada"><option value="completa">Completa</option><option value="parcial">Parcial</option></select>
+          </div>
+          <div class="campo">
+            <label for="e-vacaciones">Días de vacaciones al año</label>
+            <input type="number" id="e-vacaciones" value="22" min="0" max="60">
+          </div>
+        </div>
+        <button type="submit">Dar de alta</button>
+      </form>
+    </div>
+    <div class="tarjeta"><h2>Trabajadores</h2><div id="tabla-empleados"></div></div>
+  </section>
+
+  <section id="vista-calendario" hidden>
+    <h1>Calendario laboral</h1>
+    <div class="tarjeta">
+      <p class="ayuda">
+        Marque aquí los festivos y los cierres de empresa. El sistema no intenta ser
+        fuente de verdad de los festivos locales: los pone la gestoría, año a año.
+      </p>
+      <form id="form-calendario" class="fila">
+        <div class="campo"><label for="c-fecha">Fecha</label><input type="date" id="c-fecha" required></div>
+        <div class="campo">
+          <label for="c-tipo">Tipo</label>
+          <select id="c-tipo">
+            <option value="festivo_nacional">Festivo nacional</option>
+            <option value="festivo_autonomico">Festivo autonómico</option>
+            <option value="festivo_local">Festivo local</option>
+            <option value="cierre_empresa">Cierre de empresa</option>
+          </select>
+        </div>
+        <div class="campo"><label for="c-descripcion">Descripción</label><input id="c-descripcion"></div>
+        <div style="flex:0 0 auto"><button type="submit">Añadir</button></div>
+      </form>
+    </div>
+    <div class="tarjeta">
+      <div class="fila" style="margin-bottom:.75rem">
+        <div class="campo"><label for="c-anio">Año</label><input type="number" id="c-anio" min="2019" max="2099"></div>
+      </div>
+      <div id="tabla-calendario"></div>
+    </div>
+  </section>
+
+  <section id="vista-rejilla" hidden>
+    <h1>Fichajes del mes</h1>
+    <div class="tarjeta">
+      <div class="fila">
+        <div class="campo"><label for="r-mes">Mes</label><input type="month" id="r-mes"></div>
+        <div style="flex:0 0 auto"><button class="secundario" id="r-pdf">PDF</button></div>
+        <div style="flex:0 0 auto"><button class="secundario" id="r-csv">CSV</button></div>
+        <div style="flex:0 0 auto"><button class="secundario" id="r-verificar">Verificar integridad</button></div>
+      </div>
+    </div>
+    <div id="contenido-rejilla"></div>
+  </section>
+
+  <section id="vista-bandeja" hidden>
+    <h1>Solicitudes pendientes</h1>
+    <div class="tarjeta"><h2>Correcciones de fichaje</h2><div id="tabla-correcciones"></div></div>
+    <div class="tarjeta"><h2>Ausencias</h2><div id="tabla-ausencias"></div></div>
+  </section>
+
+  <section id="vista-incidencias" hidden>
+    <h1>Incidencias</h1>
+    <div class="tarjeta">
+      <div class="fila">
+        <div class="campo">
+          <label for="i-estado">Estado</label>
+          <select id="i-estado">
+            <option value="abierta">Abiertas</option>
+            <option value="resuelta">Resueltas</option>
+            <option value="ignorada">Ignoradas</option>
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+        <div style="flex:0 0 auto"><button class="secundario" id="i-revisar">Revisar un día</button></div>
+      </div>
+    </div>
+    <div id="tabla-incidencias"></div>
+  </section>
+
+  <section id="vista-informes" hidden>
+    <h1>Informes</h1>
+    <div class="tarjeta">
+      <div class="fila">
+        <div class="campo">
+          <label for="p-periodo">Periodo</label>
+          <select id="p-periodo">
+            <option value="mes">Mes</option>
+            <option value="trimestre">Trimestre</option>
+            <option value="semestre">Semestre</option>
+            <option value="anio">Año</option>
+          </select>
+        </div>
+        <div class="campo"><label for="p-anio">Año</label><input type="number" id="p-anio" min="2019" max="2099"></div>
+        <div class="campo"><label for="p-indice">Número</label><input type="number" id="p-indice" min="1" max="12"></div>
+        <div style="flex:0 0 auto"><button id="p-ver">Ver</button></div>
+        <div style="flex:0 0 auto"><button class="secundario" id="p-pdf">PDF</button></div>
+        <div style="flex:0 0 auto"><button class="secundario" id="p-csv">CSV</button></div>
+      </div>
+    </div>
+    <div id="contenido-informe"></div>
+  </section>
+
+  <section id="vista-ajustes" hidden>
+    <h1>Ajustes</h1>
+    <div class="tarjeta">
+      <h2>Motor de incidencias</h2>
+      <form id="form-ajustes">
+        <div class="fila">
+          <div class="campo">
+            <label for="a-tolerancia">Ventana de tolerancia (minutos)</label>
+            <input type="number" id="a-tolerancia" min="0" max="120">
+            <p class="ayuda">
+              Una alerta que salta porque alguien llega tres minutos tarde se ignora en
+              una semana y arrastra consigo a todas las demás.
+            </p>
+          </div>
+          <div class="campo">
+            <label for="a-jornada">Aviso de jornada excesiva (horas)</label>
+            <input type="number" id="a-jornada" min="6" max="24" step="0.5">
+          </div>
+        </div>
+        <div class="fila">
+          <div class="campo">
+            <label for="a-avisos">Avisos por correo</label>
+            <select id="a-avisos">
+              <option value="resumen_diario">Resumen diario</option>
+              <option value="inmediato">Inmediato</option>
+            </select>
+          </div>
+          <div class="campo"><label for="a-email">Correo para los avisos</label><input type="email" id="a-email"></div>
+        </div>
+        <button type="submit">Guardar</button>
+      </form>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Geolocalización</h2>
+      <p class="ayuda">
+        Desactivada por defecto. Se captura sólo en el instante del fichaje y nunca de
+        forma continua. Activarla es un tratamiento de datos que la empresa debe poder
+        justificar, así que la justificación se guarda por escrito.
+      </p>
+      <form id="form-geo">
+        <div class="campo">
+          <label><input type="checkbox" id="g-activa" style="width:auto;margin-right:.5rem">Capturar posición al fichar</label>
+        </div>
+        <div class="campo">
+          <label for="g-motivo">Justificación del tratamiento</label>
+          <textarea id="g-motivo" rows="3"></textarea>
+        </div>
+        <button type="submit">Guardar</button>
+      </form>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Acceso de Inspección</h2>
+      <p class="ayuda">
+        Genera una cuenta de sólo lectura, limitada a esta empresa y con caducidad.
+        No implementa el acceso remoto del borrador del Real Decreto: sus
+        especificaciones técnicas irán en una orden ministerial que todavía no existe.
+      </p>
+      <form id="form-inspeccion" class="fila">
+        <div class="campo"><label for="in-referencia">Referencia del expediente</label><input id="in-referencia"></div>
+        <div class="campo"><label for="in-dias">Días de validez</label><input type="number" id="in-dias" value="30" min="1" max="90"></div>
+        <div style="flex:0 0 auto"><button type="submit">Generar</button></div>
+      </form>
+      <div id="token-inspeccion"></div>
+      <div id="tabla-inspeccion" style="margin-top:1rem"></div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="/js/empresa.js"></script>
+</body>
+</html>

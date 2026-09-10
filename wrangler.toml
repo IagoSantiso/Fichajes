@@ -1,0 +1,36 @@
+name = "fichajes"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# La PWA se sirve como assets estáticos desde el propio Worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fichajes"
+database_id = "00000000-0000-0000-0000-000000000000"  # sustituir por el real: wrangler d1 create fichajes
+migrations_dir = "migraciones"
+
+# El motor de incidencias. Ver src/incidencias/motor.js
+#  - cada 15 min: incidencias de expectativa del día en curso
+#  - 21:50 UTC (23:50 en Europe/Madrid, horario de verano): cierre diario estructural
+#  - 22:50 UTC cubre el horario de invierno; el motor descarta la ejecución
+#    que no corresponda a las 23:50 locales de cada empresa.
+[triggers]
+crons = ["*/15 * * * *", "50 21 * * *", "50 22 * * *"]
+
+[vars]
+ENTORNO = "desarrollo"
+# Remitente de los enlaces mágicos y de los avisos de incidencias.
+CORREO_REMITENTE = "fichajes@example.com"
+CORREO_NOMBRE_REMITENTE = "Registro de jornada"
+# Proveedor de correo: "resend" | "consola" (desarrollo: vuelca a los logs)
+CORREO_PROVEEDOR = "consola"
+
+# Secretos (wrangler secret put ...):
+#   SECRETO_SESION    -> clave HMAC para firmar cookies de sesión
+#   RESEND_API_KEY    -> sólo si CORREO_PROVEEDOR = "resend"

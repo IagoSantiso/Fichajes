@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f5fbf">
+<title>Fichaje</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/iconos/icono-192.png">
+<link rel="apple-touch-icon" href="/iconos/icono-192.png">
+<link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+
+<!-- Paso 1: código de empresa ------------------------------------------- -->
+<section id="paso-empresa" class="centrado">
+  <h1>Registro de jornada</h1>
+  <p class="ayuda">Introduzca el código que le ha dado su empresa.</p>
+  <div id="aviso-empresa" class="aviso error" hidden></div>
+  <form id="form-empresa">
+    <div class="campo">
+      <label for="codigo">Código de empresa</label>
+      <input id="codigo" name="codigo" autocomplete="off" autocapitalize="characters"
+             spellcheck="false" required placeholder="SOLDPER-4821">
+    </div>
+    <button type="submit" style="width:100%">Continuar</button>
+  </form>
+  <p class="ayuda" style="margin-top:1.5rem">
+    ¿Es usted de la empresa o de la gestoría?
+    <a href="/entrar/">Entre con su correo</a>.
+  </p>
+</section>
+
+<!-- Paso 2: elegir trabajador ------------------------------------------- -->
+<section id="paso-empleado" class="centrado" hidden>
+  <h1 id="nombre-empresa"></h1>
+  <p class="ayuda">Toque su nombre.</p>
+  <ul class="lista" id="lista-empleados"></ul>
+  <button class="secundario" style="width:100%;margin-top:1rem" id="volver-codigo">
+    Cambiar de empresa
+  </button>
+</section>
+
+<!-- Paso 3: PIN ---------------------------------------------------------- -->
+<section id="paso-pin" class="centrado" hidden>
+  <h1 id="nombre-empleado"></h1>
+  <p class="ayuda">Introduzca su PIN de seis dígitos.</p>
+  <div id="aviso-pin" class="aviso error" hidden></div>
+  <div class="puntos-pin" id="puntos-pin" aria-live="polite" aria-label="Dígitos introducidos"></div>
+  <div class="teclado" id="teclado"></div>
+  <button class="secundario" style="width:100%;margin-top:1rem" id="volver-empleados">Atrás</button>
+</section>
+
+<!-- Aplicación ----------------------------------------------------------- -->
+<div id="app" hidden>
+  <header class="barra">
+    <div>
+      <span class="marca" id="marca"></span>
+      <nav>
+        <button data-vista="fichar" aria-current="page">Fichar</button>
+        <button data-vista="fichajes">Mis fichajes</button>
+        <button data-vista="ausencias">Mis ausencias</button>
+        <button data-vista="incidencias">Mis incidencias</button>
+      </nav>
+      <button class="secundario pequeno" id="salir">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="aviso-cola" class="aviso pendiente contenedor" hidden></div>
+
+    <!-- Fichar -->
+    <section id="vista-fichar" class="fichaje">
+      <p class="estado-actual" id="estado-actual"></p>
+      <button class="boton-fichar" id="boton-principal" disabled>
+        <span id="texto-principal">Cargando…</span>
+      </button>
+      <button class="boton-secundario-fichaje oculto" id="boton-secundario"></button>
+
+      <div class="tarjeta">
+        <h2>Hoy</h2>
+        <ul class="lista" id="fichajes-hoy"></ul>
+      </div>
+      <div class="tarjeta">
+        <h2>Días anteriores</h2>
+        <div id="dias-anteriores"></div>
+      </div>
+    </section>
+
+    <!-- Mis fichajes -->
+    <section id="vista-fichajes" class="contenedor" hidden>
+      <h1>Mis fichajes</h1>
+      <div class="tarjeta">
+        <div class="fila">
+          <div>
+            <label for="mes-fichajes">Mes</label>
+            <input type="month" id="mes-fichajes">
+          </div>
+          <div style="flex:0 0 auto">
+            <button class="secundario" id="descargar-fichajes">Descargar en PDF</button>
+          </div>
+        </div>
+      </div>
+      <div id="detalle-fichajes"></div>
+    </section>
+
+    <!-- Mis ausencias -->
+    <section id="vista-ausencias" class="contenedor" hidden>
+      <h1>Mis ausencias</h1>
+      <div class="tarjeta" id="saldo-vacaciones"></div>
+      <div class="tarjeta">
+        <h2>Solicitar días</h2>
+        <div id="aviso-ausencia" class="aviso" hidden></div>
+        <form id="form-ausencia">
+          <div class="fila">
+            <div class="campo">
+              <label for="tipo-ausencia">Tipo</label>
+              <select id="tipo-ausencia">
+                <option value="vacaciones">Vacaciones</option>
+                <option value="asuntos_propios">Asuntos propios</option>
+                <option value="permiso_retribuido">Permiso retribuido</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="desde-ausencia">Desde</label>
+              <input type="date" id="desde-ausencia" required>
+            </div>
+            <div class="campo">
+              <label for="hasta-ausencia">Hasta</label>
+              <input type="date" id="hasta-ausencia" required>
+            </div>
+          </div>
+          <div class="campo">
+            <label for="comentario-ausencia">Comentario (opcional)</label>
+            <input id="comentario-ausencia" maxlength="200">
+          </div>
+          <button type="submit">Solicitar</button>
+        </form>
+      </div>
+      <div class="tarjeta">
+        <h2>Historial</h2>
+        <div id="historial-ausencias"></div>
+      </div>
+    </section>
+
+    <!-- Mis incidencias -->
+    <section id="vista-incidencias" class="contenedor" hidden>
+      <h1>Mis incidencias</h1>
+      <p class="ayuda">
+        Son avisos sobre sus propios fichajes: un día sin salida, una pausa sin cerrar.
+        Si alguno no es correcto, pida la corrección desde «Mis fichajes».
+      </p>
+      <div id="lista-incidencias"></div>
+    </section>
+  </main>
+</div>
+
+<script type="module" src="/js/trabajador.js"></script>
+</body>
+</html>
