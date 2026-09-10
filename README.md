@@ -59,9 +59,26 @@ npx wrangler login
 npx wrangler secret put SECRETO_SESION
 npx wrangler d1 create fichajes           # si aún no existe; copie el database_id
 npm run db:remoto
-npx wrangler d1 execute fichajes --remote --file=./semillas/desarrollo.sql
 npm run deploy
 ```
+
+Eso deja la plataforma en pie, pero con la base vacía: todas las rejillas
+saldrían a cero, que es una mala demostración. Para llevar al otro lado el mes
+de fichajes de ejemplo, se genera en local y se vuelca a un fichero de SQL:
+
+```bash
+npm run db:local && npm run semilla       # base local de partida
+node semillas/generar-mes.mjs             # un mes de fichajes realistas
+node semillas/pasar-motor.mjs             # y sus incidencias
+node semillas/volcar-demo.mjs             # -> semillas/demo-completa.sql
+
+npx wrangler d1 execute fichajes --remote --file=./semillas/demo-completa.sql
+```
+
+El volcado es autocontenido —trae gestoría, empresa, plantilla, horarios,
+calendario, fichajes e incidencias— y se puede reaplicar sin duplicar nada.
+La cadena de integridad de los fichajes viaja intacta; hay pruebas que lo
+comprueban.
 
 La URL que da `npm run deploy`
 (`https://fichajes.<su-subdominio>.workers.dev`) ya sirve para que el cliente
