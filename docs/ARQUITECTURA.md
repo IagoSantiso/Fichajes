@@ -129,10 +129,25 @@ cuatro años de conservación obligatoria.
 - **Cron Triggers** para el motor de incidencias.
 - **PWA sin framework**: HTML, CSS y JavaScript propios. Manifest, service
   worker y cola offline en IndexedDB.
-- **Autenticación**: enlace mágico al correo para gestoría y empresa; código de
-  empresa más PIN de seis dígitos para el trabajador, porque muchos no tienen
-  correo de trabajo. Sesión en cookie `httpOnly`, de larga duración en el
-  dispositivo del trabajador.
+- **Autenticación**: cada uno con credenciales propias, sin correo de por
+  medio. El trabajador teclea un identificador de seis cifras —tres de su
+  empresa y tres suyas— y su PIN, todo en el teclado numérico de la aplicación,
+  que es lo que se puede usar con guantes. La empresa y la gestoría, correo y
+  contraseña. Sesión en cookie `httpOnly`, de larga duración en el dispositivo
+  del trabajador.
+
+  El brief pedía enlace mágico al correo. Se cambió porque obligaba a mantener
+  un proveedor de correo con dominio verificado y entregabilidad para un
+  producto que se vende a empresas de tres personas, y porque una clave
+  olvidada se resuelve mejor por jerarquía: la gestoría repone la de sus
+  empresas, la empresa el PIN de sus trabajadores, y la de la gestoría se
+  repone a mano. Eso saca el correo del acceso por completo. La autenticación
+  no está entre las seis decisiones no negociables, que son las de arriba.
+
+  Contrapartida: un identificador secuencial es enumerable, así que el límite
+  de intentos deja de ser opcional. Cinco fallos bloquean un identificador diez
+  minutos; veinte desde una misma IP la bloquean a ella, que es lo que frena
+  probar un mismo PIN contra muchos identificadores.
 
 ### Por qué no se precalcula nada en los informes
 

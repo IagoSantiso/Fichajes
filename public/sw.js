@@ -16,7 +16,7 @@
  * Para que eso no penalice a quien ficha con mala señal, la red no se espera
  * indefinidamente: pasado ESPERA_RED_MS sale la copia guardada.
  */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = `armazon-${VERSION}`;
 
 /** Cuánto se espera a la red antes de tirar de la copia local. */

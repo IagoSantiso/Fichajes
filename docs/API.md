@@ -19,32 +19,53 @@ La gestoría indica en qué empresa trabaja con el parámetro `?empresa=<id>` (o
 
 ### Rutas públicas
 
-`POST /api/auth/enlace` · `GET /api/auth/entrar` · `GET /api/auth/empresa/:codigo`
-· `POST /api/auth/pin` · `GET /api/salud`
+`POST /api/auth/trabajador` · `POST /api/auth/panel` ·
+`GET /api/auth/requisitos` · `GET /api/salud`
 
 ### Errores
 
 | Código | Significado |
 |--------|-------------|
 | 400 | Petición mal formada |
-| 401 | Sin sesión válida |
+| 401 | Sin sesión válida, o credenciales incorrectas |
 | 403 | Sesión válida, pero sin permiso para eso |
 | 404 | No existe, o no existe *para usted* |
 | 409 | Conflicto de estado (transición de fichaje imposible, solicitud ya resuelta) |
+| 429 | Demasiados intentos fallidos; hay que esperar |
 
 Cuerpo: `{ "error": "…", "codigo": "…" }`. El `codigo` sólo aparece en los casos
-que el frontend necesita distinguir, como `transicion_invalida`.
+que el frontend necesita distinguir, como `transicion_invalida` o
+`demasiados_intentos`.
 
-## Autenticación
+## Acceso
 
 | Método | Ruta | Qué hace |
 |--------|------|----------|
-| `POST` | `/api/auth/enlace` | Pide un enlace mágico. Responde igual exista o no la cuenta |
-| `GET` | `/api/auth/entrar?token=` | Canjea el enlace y redirige al panel. De un solo uso |
-| `GET` | `/api/auth/empresa/:codigo` | Empresa y nombres de su plantilla, para elegirse antes del PIN |
-| `POST` | `/api/auth/pin` | Entrada del trabajador: `{ codigo, empleado_id, pin }` |
+| `POST` | `/api/auth/trabajador` | `{ identificador, pin }`. El identificador son seis cifras: tres de la empresa y tres del empleado |
+| `POST` | `/api/auth/panel` | `{ email, password }` para empresa y gestoría |
+| `POST` | `/api/auth/cambiar-pin` | `{ pin_actual, pin_nuevo }` |
+| `POST` | `/api/auth/cambiar-password` | `{ password_actual, password_nueva }` |
+| `GET` | `/api/auth/requisitos` | Longitud del PIN y mínimo de la contraseña |
 | `GET` | `/api/auth/yo` | Quién soy. Lo llama el frontend al arrancar |
 | `POST` | `/api/auth/salir` | Revoca la sesión |
+
+Las dos rutas de entrada devuelven `debe_cambiar_pin` o
+`debe_cambiar_password`: toda clave repartida por otro obliga a cambiarla antes
+de seguir.
+
+**Reposición de claves**, que es lo que sustituye al correo de recuperación:
+
+| Método | Ruta | Quién |
+|--------|------|-------|
+| `PATCH` | `/api/empleados/:id` con `{ pin }` | La empresa repone el PIN de su trabajador |
+| `POST` | `/api/gestoria/empresas/:id/password` | La gestoría repone la contraseña de su empresa |
+
+La contraseña o el PIN repuestos se devuelven **una sola vez** en la respuesta:
+sólo se guarda su hash.
+
+**Límite de intentos**: cinco fallos bloquean un identificador o un correo
+durante diez minutos; veinte fallos desde una misma IP la bloquean a ella. Un
+acceso correcto limpia la cuenta del identificador, pero no la de la IP.
 
 ## Fichajes
 

@@ -41,9 +41,13 @@ export async function api(ruta, opciones = {}) {
   });
 
   if (respuesta.status === 401) {
-    // La sesión ha caducado: se vuelve a la entrada, sin dar vueltas.
+    // Un 401 puede ser una sesión caducada o unas credenciales que no valen.
+    // El mensaje lo pone el servidor, que es quien sabe cuál de las dos es:
+    // decirle «sesión caducada» a quien acaba de teclear mal su PIN no ayuda
+    // a nadie. Sólo se redirige cuando quien llama no gestiona el error.
+    const datos = await respuesta.json().catch(() => ({}));
     if (!opciones.silencioso) location.href = opciones.destinoEntrada ?? '/';
-    throw new ErrorApi(401, 'Sesión caducada');
+    throw new ErrorApi(401, datos.error ?? 'Sesión caducada', datos.codigo);
   }
 
   const tipo = respuesta.headers.get('content-type') ?? '';

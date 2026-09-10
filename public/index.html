@@ -12,43 +12,57 @@
 </head>
 <body>
 
-<!-- Paso 1: código de empresa ------------------------------------------- -->
-<section id="paso-empresa" class="centrado">
+<!-- Acceso: identificador y PIN ---------------------------------------- -->
+<section id="paso-acceso" class="centrado">
   <h1>Registro de jornada</h1>
-  <p class="ayuda">Introduzca el código que le ha dado su empresa.</p>
-  <div id="aviso-empresa" class="aviso error" hidden></div>
-  <form id="form-empresa">
-    <div class="campo">
-      <label for="codigo">Código de empresa</label>
-      <input id="codigo" name="codigo" autocomplete="off" autocapitalize="characters"
-             spellcheck="false" required placeholder="SOLDPER-4821">
-    </div>
-    <button type="submit" style="width:100%">Continuar</button>
-  </form>
-  <p class="ayuda" style="margin-top:1.5rem">
+  <p class="ayuda">
+    Introduzca el identificador y el PIN que le ha dado su empresa.
+  </p>
+  <div id="aviso-acceso" class="aviso error" hidden></div>
+
+  <div class="campo">
+    <label for="identificador">Identificador</label>
+    <input id="identificador" inputmode="numeric" autocomplete="username"
+           maxlength="6" placeholder="000000" class="campo-numerico">
+    <p class="ayuda">Seis cifras: las tres de su empresa y las tres suyas.</p>
+  </div>
+
+  <div class="campo">
+    <label>PIN</label>
+    <div class="puntos-pin" id="puntos-pin" aria-live="polite" aria-label="Dígitos del PIN"></div>
+  </div>
+
+  <div class="teclado" id="teclado"></div>
+
+  <p class="ayuda" style="margin-top:1.5rem;text-align:center">
     ¿Es usted de la empresa o de la gestoría?
     <a href="/entrar/">Entre con su correo</a>.
   </p>
 </section>
 
-<!-- Paso 2: elegir trabajador ------------------------------------------- -->
-<section id="paso-empleado" class="centrado" hidden>
-  <h1 id="nombre-empresa"></h1>
-  <p class="ayuda">Toque su nombre.</p>
-  <ul class="lista" id="lista-empleados"></ul>
-  <button class="secundario" style="width:100%;margin-top:1rem" id="volver-codigo">
-    Cambiar de empresa
-  </button>
-</section>
-
-<!-- Paso 3: PIN ---------------------------------------------------------- -->
-<section id="paso-pin" class="centrado" hidden>
-  <h1 id="nombre-empleado"></h1>
-  <p class="ayuda">Introduzca su PIN de seis dígitos.</p>
-  <div id="aviso-pin" class="aviso error" hidden></div>
-  <div class="puntos-pin" id="puntos-pin" aria-live="polite" aria-label="Dígitos introducidos"></div>
-  <div class="teclado" id="teclado"></div>
-  <button class="secundario" style="width:100%;margin-top:1rem" id="volver-empleados">Atrás</button>
+<!-- Cambio obligatorio de PIN ------------------------------------------- -->
+<section id="paso-cambiar-pin" class="centrado" hidden>
+  <h1>Cambie su PIN</h1>
+  <p class="ayuda">
+    El PIN que le dieron lo conoce también quien se lo dio. Elija uno nuevo que
+    sepa sólo usted.
+  </p>
+  <div id="aviso-cambio" class="aviso" hidden></div>
+  <form id="form-cambiar-pin">
+    <div class="campo">
+      <label for="pin-actual">PIN actual</label>
+      <input id="pin-actual" inputmode="numeric" maxlength="6" required class="campo-numerico">
+    </div>
+    <div class="campo">
+      <label for="pin-nuevo">PIN nuevo</label>
+      <input id="pin-nuevo" inputmode="numeric" maxlength="6" required class="campo-numerico">
+    </div>
+    <div class="campo">
+      <label for="pin-repetido">Repita el PIN nuevo</label>
+      <input id="pin-repetido" inputmode="numeric" maxlength="6" required class="campo-numerico">
+    </div>
+    <button type="submit" style="width:100%">Guardar y entrar</button>
+  </form>
 </section>
 
 <!-- Aplicación ----------------------------------------------------------- -->

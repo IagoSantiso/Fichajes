@@ -7,6 +7,7 @@
  */
 import { json, malaPeticion, prohibido, noEncontrado } from '../lib/respuestas.js';
 import { hashearPin } from '../lib/auth.js';
+import { componerIdentificador } from './auth.js';
 import { nuevoId } from '../lib/ids.js';
 import { ahoraUtc, sumarDias } from '../lib/tiempo.js';
 import { registrarAcceso } from '../lib/log.js';
@@ -17,14 +18,22 @@ function exigirPanel(sesion) {
 }
 
 export function registrarRutasEmpleados(router) {
-  router.get('/api/empleados', async ({ sesion, datos, url }) => {
+  router.get('/api/empleados', async ({ sesion, datos, empresa, url }) => {
     if (sesion.actorTipo === 'empleado') throw prohibido();
     const incluirBajas = url.searchParams.get('incluir_bajas') === '1';
     const filas = await datos.listar('empleados',
       incluirBajas ? {} : { activo: 1 },
       { orden: 'apellidos ASC, nombre ASC' });
-    // El PIN no sale de aquí ni siquiera hasheado.
-    return json({ empleados: filas.map(({ pin_hash, ...resto }) => resto) });
+    // El PIN no sale de aquí ni siquiera hasheado. Sí sale el identificador
+    // de acceso, que es justamente lo que la empresa tiene que dar al
+    // trabajador junto con su PIN.
+    return json({
+      empleados: filas.map(({ pin_hash, ...resto }) => ({
+        ...resto,
+        identificador: componerIdentificador(empresa.numero, resto.numero),
+        tiene_pin: Boolean(pin_hash),
+      })),
+    });
   });
 
   router.get('/api/empleados/:id', async ({ sesion, datos, parametros }) => {
@@ -40,13 +49,26 @@ export function registrarRutasEmpleados(router) {
     const nombre = String(cuerpo.nombre ?? '').trim();
     if (!nombre) throw malaPeticion('El nombre es obligatorio');
 
+    // El número no se reutiliza al dar de baja a alguien: se toma siempre por
+    // encima del mayor asignado. Reciclarlo haría que el identificador de un
+    // trabajador que se fue pasara a ser el de otro, y los dos aparecen en el
+    // log de accesos de los últimos cuatro años.
+    const mayor = await datos.uno('empleados', {}, { campos: 'MAX(numero) AS n' });
+    const numero = (mayor?.n ?? 0) + 1;
+    if (numero > 999) {
+      throw malaPeticion('Esta empresa ha agotado los números de empleado (máximo 999)');
+    }
+
     const empleado = {
       id: nuevoId('emp'),
+      numero,
       nombre,
       apellidos: String(cuerpo.apellidos ?? '').trim(),
       documento_identidad: cuerpo.documento_identidad ?? null,
       email: cuerpo.email ?? null,
       pin_hash: cuerpo.pin ? await hashearPin(cuerpo.pin) : null,
+      // Un PIN que reparte la empresa lo conoce la empresa: se cambia al entrar.
+      pin_debe_cambiarse: cuerpo.pin ? 1 : 0,
       tipo_jornada: cuerpo.tipo_jornada === 'parcial' ? 'parcial' : 'completa',
       rol: cuerpo.rol === 'responsable' ? 'responsable' : 'empleado',
       dias_vacaciones_anuales: Number(cuerpo.dias_vacaciones_anuales ?? 22),
@@ -66,7 +88,13 @@ export function registrarRutasEmpleados(router) {
     });
 
     const { pin_hash, ...vista } = empleado;
-    return json({ ok: true, empleado: vista }, 201);
+    return json({
+      ok: true,
+      empleado: {
+        ...vista,
+        identificador: componerIdentificador(empresa.numero, empleado.numero),
+      },
+    }, 201);
   });
 
   router.patch('/api/empleados/:id', async ({ env, sesion, datos, empresa, parametros, cuerpo, peticion }) => {
@@ -76,7 +104,11 @@ export function registrarRutasEmpleados(router) {
       'tipo_jornada', 'rol', 'dias_vacaciones_anuales', 'fecha_baja']) {
       if (campo in cuerpo) cambios[campo] = cuerpo[campo];
     }
-    if (cuerpo.pin) cambios.pin_hash = await hashearPin(cuerpo.pin);
+    if (cuerpo.pin) {
+      cambios.pin_hash = await hashearPin(cuerpo.pin);
+      // Lo reparte otro, así que lo conoce otro: se cambia al entrar.
+      cambios.pin_debe_cambiarse = 1;
+    }
     if ('activo' in cuerpo) cambios.activo = cuerpo.activo ? 1 : 0;
     if (!Object.keys(cambios).length) throw malaPeticion('Nada que cambiar');
 

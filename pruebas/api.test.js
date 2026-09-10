@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import worker from '../src/index.js';
-import { entornoDePrueba } from './ayudas/d1.js';
+import { entornoDePrueba, sembrar } from './ayudas/d1.js';
 import { crearSesion } from '../src/lib/auth.js';
 
 const BASE = 'https://fichajes.ejemplo.es';
@@ -104,20 +104,21 @@ test('recorrido completo: alta, fichaje, corrección, informe y exportación', a
   const empleadoId = trabajador.datos.empleado.id;
   assert.equal(trabajador.datos.empleado.pin_hash, undefined, 'el PIN no puede volver en la respuesta');
 
-  // 3. El trabajador ve su empresa por el código y entra con su PIN.
-  const listado = await llamar(env, 'GET', '/api/auth/empresa/SOLDPER');
-  assert.equal(listado.estado, 200);
-  assert.equal(listado.datos.empleados.length, 1);
+  // 3. El alta le da su identificador de acceso, y con él entra.
+  const identificador = trabajador.datos.empleado.identificador;
+  assert.match(identificador, /^\d{6}$/);
 
-  const malPin = await llamar(env, 'POST', '/api/auth/pin', {
-    cuerpo: { codigo: 'SOLDPER', empleado_id: empleadoId, pin: '000000' },
+  const malPin = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador, pin: '000000' },
   });
   assert.equal(malPin.estado, 401);
 
-  const entrada = await llamar(env, 'POST', '/api/auth/pin', {
-    cuerpo: { codigo: 'SOLDPER', empleado_id: empleadoId, pin: '482915' },
+  const entrada = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador, pin: '482915' },
   });
   assert.equal(entrada.estado, 200);
+  // El PIN lo repartió la empresa, así que hay que cambiarlo al entrar.
+  assert.equal(entrada.datos.debe_cambiar_pin, true);
   const cookieTrabajador = extraerCookie(entrada.cabeceras);
   assert.ok(cookieTrabajador);
 
@@ -218,8 +219,8 @@ test('una solicitud que no apunta a ningún fichaje se resuelve como alta, no co
     cookie: cookieGestoria, cuerpo: { nombre: 'Ana', pin: '111111' },
   });
 
-  const sesion = await llamar(env, 'POST', '/api/auth/pin', {
-    cuerpo: { codigo: 'EMPRESA1', empleado_id: trabajador.datos.empleado.id, pin: '111111' },
+  const sesion = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: trabajador.datos.empleado.identificador, pin: '111111' },
   });
   const cookie = extraerCookie(sesion.cabeceras);
 
@@ -271,8 +272,8 @@ test('un trabajador no puede ver los fichajes de un compañero', async () => {
     cookie: cookieGestoria, cuerpo: { nombre: 'Luis', pin: '222222' },
   });
 
-  const sesion = await llamar(env, 'POST', '/api/auth/pin', {
-    cuerpo: { codigo: 'EMPRESA1', empleado_id: uno.datos.empleado.id, pin: '111111' },
+  const sesion = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: uno.datos.empleado.identificador, pin: '111111' },
   });
   const cookie = extraerCookie(sesion.cabeceras);
 
@@ -340,72 +341,224 @@ test('una ruta inexistente devuelve 404 con mensaje claro', async () => {
   assert.match(datos.error, /Ruta no encontrada/);
 });
 
-// --- Modo demostración -----------------------------------------------------
+// --- Acceso ----------------------------------------------------------------
 
-/**
- * El modo demo es el atajo para dar a alguien una URL pública sin tener un
- * correo real conectado: el enlace mágico vuelve en la propia respuesta. Por
- * defecto debe estar apagado, porque anula la comprobación de que quien pide
- * el enlace es el dueño del correo.
- */
-test('el modo demo está apagado por defecto', async () => {
-  const { env } = prepararEntorno();
-  const { datos } = await llamar(env, 'GET', '/api/auth/modo');
-  assert.equal(datos.demo, false);
-});
+/** Da de alta un usuario de panel con contraseña conocida. */
+async function sembrarUsuarioPanel(db, { email, password, debeCambiar = 0 }) {
+  const { hashearPassword } = await import('../src/lib/auth.js');
+  db.prepare(
+    `INSERT INTO usuarios (id, email, nombre, rol, gestoria_id, activo,
+                           password_hash, debe_cambiar_password)
+     VALUES ('usu_g',?,'Gestor','gestoria','ges_1',1,?,?)`,
+  ).run(email, await hashearPassword(password), debeCambiar);
+}
 
-test('sin modo demo, pedir el enlace no lo revela y responde igual exista o no la cuenta', async () => {
+/** Da de alta el PIN del empleado de la semilla de pruebas. */
+async function sembrarPin(db, pin, debeCambiar = 0) {
+  const { hashearPin } = await import('../src/lib/auth.js');
+  db.prepare(`UPDATE empleados SET pin_hash = ?, pin_debe_cambiarse = ? WHERE id = 'emp_1'`)
+    .run(await hashearPin(pin), debeCambiar);
+}
+
+test('el trabajador entra con su identificador y su PIN', async () => {
   const { db, env } = prepararEntorno();
-  db.exec(`INSERT INTO gestorias (id, nombre) VALUES ('ges_1','Gestoría Ejemplo')`);
-  db.exec(`INSERT INTO usuarios (id, email, nombre, rol, gestoria_id)
-           VALUES ('usu_g','gestor@ejemplo.es','Gestor','gestoria','ges_1')`);
+  const { empleado } = sembrar(db);
+  await sembrarPin(db, '482915');
 
-  const conCuenta = await llamar(env, 'POST', '/api/auth/enlace', {
-    cuerpo: { email: 'gestor@ejemplo.es' },
-  });
-  const sinCuenta = await llamar(env, 'POST', '/api/auth/enlace', {
-    cuerpo: { email: 'no-existe@nada.es' },
+  const { estado, datos, cabeceras } = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: empleado.identificador, pin: '482915' },
   });
 
-  assert.equal(conCuenta.estado, 200);
-  assert.equal(sinCuenta.estado, 200);
-  assert.deepEqual(conCuenta.datos, sinCuenta.datos, 'la respuesta no debe distinguir si la cuenta existe');
-  assert.equal(conCuenta.datos.enlace, undefined, 'el enlace nunca debe salir por la API fuera del modo demo');
-});
-
-test('con modo demo, el enlace vuelve en la respuesta y se puede canjear', async () => {
-  const { db, env } = prepararEntorno();
-  env.MODO_DEMO_ENLACE = '1';
-  db.exec(`INSERT INTO gestorias (id, nombre) VALUES ('ges_1','Gestoría Ejemplo')`);
-  db.exec(`INSERT INTO usuarios (id, email, nombre, rol, gestoria_id)
-           VALUES ('usu_g','gestor@ejemplo.es','Gestor','gestoria','ges_1')`);
-
-  const modo = await llamar(env, 'GET', '/api/auth/modo');
-  assert.equal(modo.datos.demo, true);
-
-  const { estado, datos } = await llamar(env, 'POST', '/api/auth/enlace', {
-    cuerpo: { email: 'gestor@ejemplo.es' },
-  });
   assert.equal(estado, 200);
-  assert.equal(datos.demo, true);
-  assert.match(datos.enlace, /\/api\/auth\/entrar\?token=/);
-
-  // El enlace generado funciona de verdad: canjearlo deja la sesión puesta.
-  const url = new URL(datos.enlace);
-  const canje = await llamar(env, 'GET', `${url.pathname}${url.search}`);
-  assert.equal(canje.estado, 302);
-  assert.equal(canje.respuesta.headers.get('location'), '/gestoria/');
-  assert.ok(canje.respuesta.headers.get('set-cookie'));
+  assert.equal(datos.debe_cambiar_pin, false);
+  assert.ok(extraerCookie(cabeceras), 'debe dejar la sesión puesta');
 });
 
-test('con modo demo, un correo no dado de alta se rechaza con un mensaje claro', async () => {
-  const { env } = prepararEntorno();
-  env.MODO_DEMO_ENLACE = '1';
+test('la respuesta no distingue un identificador inexistente de un PIN incorrecto', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+  await sembrarPin(db, '482915');
 
-  const { estado, datos } = await llamar(env, 'POST', '/api/auth/enlace', {
-    cuerpo: { email: 'no-existe@nada.es' },
+  const malPin = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: '001001', pin: '000000' },
   });
-  assert.equal(estado, 404);
-  assert.match(datos.error, /no está dado de alta/);
-  assert.equal(datos.enlace, undefined);
+  const noExiste = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: '999999', pin: '000000' },
+  });
+
+  assert.equal(malPin.estado, 401);
+  assert.equal(noExiste.estado, 401);
+  assert.deepEqual(malPin.datos, noExiste.datos,
+    'con identificadores enumerables, distinguirlos sería decir cuáles existen');
+});
+
+test('el identificador tiene que ser de seis cifras', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+
+  for (const identificador of ['1001', '00100a', '0010011', '']) {
+    const { estado } = await llamar(env, 'POST', '/api/auth/trabajador', {
+      cuerpo: { identificador, pin: '482915' },
+    });
+    assert.equal(estado, 400, `«${identificador}» debería rechazarse`);
+  }
+});
+
+test('la empresa y la gestoría entran con correo y contraseña', async () => {
+  const { db, env } = prepararEntorno();
+  db.exec(`INSERT INTO gestorias (id, nombre) VALUES ('ges_1','G')`);
+  await sembrarUsuarioPanel(db, { email: 'gestor@ejemplo.es', password: 'fichajes2026' });
+
+  const bien = await llamar(env, 'POST', '/api/auth/panel', {
+    cuerpo: { email: 'gestor@ejemplo.es', password: 'fichajes2026' },
+  });
+  assert.equal(bien.estado, 200);
+  assert.equal(bien.datos.rol, 'gestoria');
+  assert.equal(bien.datos.destino, '/gestoria/');
+  assert.ok(extraerCookie(bien.cabeceras));
+
+  const mal = await llamar(env, 'POST', '/api/auth/panel', {
+    cuerpo: { email: 'gestor@ejemplo.es', password: 'otra-cosa' },
+  });
+  assert.equal(mal.estado, 401);
+  assert.equal(extraerCookie(mal.cabeceras), null);
+});
+
+test('una clave puesta por otro obliga a cambiarla en el primer acceso', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+  await sembrarPin(db, '482915', 1);
+
+  const entrada = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: '001001', pin: '482915' },
+  });
+  assert.equal(entrada.datos.debe_cambiar_pin, true);
+
+  const cookie = extraerCookie(entrada.cabeceras);
+  const cambio = await llamar(env, 'POST', '/api/auth/cambiar-pin', {
+    cookie, cuerpo: { pin_actual: '482915', pin_nuevo: '135791' },
+  });
+  assert.equal(cambio.estado, 200);
+
+  // Ya no lo vuelve a pedir, y el PIN viejo deja de valer.
+  const despues = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: '001001', pin: '135791' },
+  });
+  assert.equal(despues.datos.debe_cambiar_pin, false);
+
+  const viejo = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: '001001', pin: '482915' },
+  });
+  assert.equal(viejo.estado, 401);
+});
+
+test('cambiar la clave exige la actual y que la nueva sea distinta', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+  await sembrarPin(db, '482915');
+
+  const entrada = await llamar(env, 'POST', '/api/auth/trabajador', {
+    cuerpo: { identificador: '001001', pin: '482915' },
+  });
+  const cookie = extraerCookie(entrada.cabeceras);
+
+  const sinLaActual = await llamar(env, 'POST', '/api/auth/cambiar-pin', {
+    cookie, cuerpo: { pin_actual: '000000', pin_nuevo: '135791' },
+  });
+  assert.equal(sinLaActual.estado, 401);
+
+  const repetida = await llamar(env, 'POST', '/api/auth/cambiar-pin', {
+    cookie, cuerpo: { pin_actual: '482915', pin_nuevo: '482915' },
+  });
+  assert.equal(repetida.estado, 400);
+});
+
+// --- Límite de intentos ----------------------------------------------------
+
+/** Llama pasando una IP concreta, que es lo que usa el cerrojo por IP. */
+async function intentar(env, cuerpo, ip) {
+  const respuesta = await worker.fetch(
+    new Request(`${BASE}/api/auth/trabajador`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'cf-connecting-ip': ip },
+      body: JSON.stringify(cuerpo),
+    }), env, { waitUntil: () => {} });
+  return { estado: respuesta.status, datos: await respuesta.json() };
+}
+
+test('cinco fallos bloquean ese identificador diez minutos', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+  await sembrarPin(db, '482915');
+
+  for (let i = 0; i < 5; i++) {
+    const { estado } = await intentar(env, { identificador: '001001', pin: '000000' }, '203.0.113.1');
+    assert.equal(estado, 401, `el intento ${i + 1} debe poder hacerse`);
+  }
+
+  const sexto = await intentar(env, { identificador: '001001', pin: '000000' }, '203.0.113.1');
+  assert.equal(sexto.estado, 429);
+  assert.equal(sexto.datos.codigo, 'demasiados_intentos');
+
+  // Ni siquiera con el PIN bueno: si no, el cerrojo sería un oráculo que
+  // distingue el PIN correcto del incorrecto.
+  const conElBueno = await intentar(env, { identificador: '001001', pin: '482915' }, '203.0.113.1');
+  assert.equal(conElBueno.estado, 429);
+});
+
+test('el bloqueo es por identificador, no para toda la empresa', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+  await sembrarPin(db, '482915');
+  const { hashearPin } = await import('../src/lib/auth.js');
+  db.prepare(
+    `INSERT INTO empleados (id, empresa_id, numero, nombre, apellidos, pin_hash, activo)
+     VALUES ('emp_2','emc_1',2,'Luis','Soto',?,1)`,
+  ).run(await hashearPin('112233'));
+
+  for (let i = 0; i < 6; i++) {
+    await intentar(env, { identificador: '001001', pin: '000000' }, '203.0.113.2');
+  }
+
+  const otro = await intentar(env, { identificador: '001002', pin: '112233' }, '203.0.113.2');
+  assert.equal(otro.estado, 200, 'un compañero no debe quedar bloqueado por los fallos de otro');
+});
+
+test('el cerrojo por IP frena el barrido de identificadores', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+  await sembrarPin(db, '482915');
+
+  // Un mismo PIN contra identificadores distintos: el cerrojo por identificador
+  // no lo ve, porque cada uno falla una sola vez.
+  let bloqueadoTras = null;
+  for (let n = 100; n < 130 && bloqueadoTras === null; n++) {
+    const identificador = `001${String(n).padStart(3, '0')}`;
+    const { estado } = await intentar(env, { identificador, pin: '123456' }, '198.51.100.1');
+    if (estado === 429) bloqueadoTras = n - 100;
+  }
+
+  assert.equal(bloqueadoTras, 20, 'debe cortar al vigésimo intento desde la misma IP');
+
+  // Y el corte alcanza también a quien tenga la clave buena desde esa IP.
+  const legitimo = await intentar(env, { identificador: '001001', pin: '482915' }, '198.51.100.1');
+  assert.equal(legitimo.estado, 429);
+});
+
+test('un acceso correcto borra la cuenta de fallos de ese identificador', async () => {
+  const { db, env } = prepararEntorno();
+  sembrar(db);
+  await sembrarPin(db, '482915');
+
+  for (let i = 0; i < 4; i++) {
+    await intentar(env, { identificador: '001001', pin: '000000' }, '203.0.113.3');
+  }
+  const bien = await intentar(env, { identificador: '001001', pin: '482915' }, '203.0.113.3');
+  assert.equal(bien.estado, 200);
+
+  // Con la cuenta a cero, vuelve a haber cinco intentos disponibles.
+  for (let i = 0; i < 5; i++) {
+    const { estado } = await intentar(env, { identificador: '001001', pin: '000000' }, '203.0.113.3');
+    assert.equal(estado, 401, `tras acertar debe volver a haber cinco intentos (fallo ${i + 1})`);
+  }
 });

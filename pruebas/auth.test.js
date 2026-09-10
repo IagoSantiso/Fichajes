@@ -11,8 +11,10 @@ import assert from 'node:assert/strict';
 
 import { entornoDePrueba, sembrar } from './ayudas/d1.js';
 import {
-  hashearPin, verificarPin, comparacionConstante, crearSesion, sesionDe,
-  revocarSesion, crearEnlaceMagico, canjearEnlaceMagico, sha256Token,
+  hashearPin, hashearPassword, verificarSecreto, comparacionConstante,
+  crearSesion, sesionDe, revocarSesion, sha256Token,
+  exigirSinBloqueo, anotarFallo, limpiarFallos,
+  INTENTOS_MAXIMOS, INTENTOS_MAXIMOS_IP, MINIMO_PASSWORD,
 } from '../src/lib/auth.js';
 
 const peticionCon = (cookie) => ({
@@ -27,8 +29,8 @@ test('el PIN se guarda hasheado y con sal distinta cada vez', async () => {
   assert.ok(!uno.includes('123456'));
   assert.match(uno, /^pbkdf2\$100000\$[0-9a-f]{32}\$[0-9a-f]{64}$/);
 
-  assert.equal(await verificarPin('123456', uno), true);
-  assert.equal(await verificarPin('654321', uno), false);
+  assert.equal(await verificarSecreto('123456', uno), true);
+  assert.equal(await verificarSecreto('654321', uno), false);
 });
 
 test('el PIN tiene que ser de seis dígitos', async () => {
@@ -38,8 +40,8 @@ test('el PIN tiene que ser de seis dígitos', async () => {
 });
 
 test('verificar contra un PIN inexistente devuelve falso, no revienta', async () => {
-  assert.equal(await verificarPin('123456', null), false);
-  assert.equal(await verificarPin('123456', 'basura'), false);
+  assert.equal(await verificarSecreto('123456', null), false);
+  assert.equal(await verificarSecreto('123456', 'basura'), false);
 });
 
 test('la comparación de secretos no se corta en la primera diferencia', () => {
@@ -122,44 +124,102 @@ test('la cookie de sesión es httpOnly y SameSite', async () => {
   assert.match(cookie, /Path=\//);
 });
 
-test('el enlace mágico es de un solo uso', async () => {
-  const { db, env } = entornoDePrueba();
-  sembrar(db);
-  db.prepare(
-    `INSERT INTO usuarios (id, email, nombre, rol, empresa_id)
-     VALUES ('usu_1','jefe@ejemplo.es','Jefe','empresa','emc_1')`,
-  ).run();
+test('la contraseña se guarda hasheada y con un mínimo de longitud', async () => {
+  const uno = await hashearPassword('fichajes2026');
+  const otro = await hashearPassword('fichajes2026');
 
-  const { token } = await crearEnlaceMagico(env, 'usu_1');
-  const usuario = await canjearEnlaceMagico(env, token);
-  assert.equal(usuario.id, 'usu_1');
+  assert.notEqual(uno, otro, 'dos hashes de la misma contraseña no pueden coincidir');
+  assert.ok(!uno.includes('fichajes2026'));
+  assert.equal(await verificarSecreto('fichajes2026', uno), true);
+  assert.equal(await verificarSecreto('Fichajes2026', uno), false);
 
-  await assert.rejects(() => canjearEnlaceMagico(env, token), /ya se ha usado/);
+  await assert.rejects(() => hashearPassword('corta'), /al menos/);
+  await assert.rejects(() => hashearPassword(''), /al menos/);
+  assert.ok(MINIMO_PASSWORD >= 8);
 });
 
-test('el enlace mágico caduca', async () => {
-  const { db, env } = entornoDePrueba();
-  sembrar(db);
-  db.prepare(
-    `INSERT INTO usuarios (id, email, nombre, rol, empresa_id)
-     VALUES ('usu_1','jefe@ejemplo.es','Jefe','empresa','emc_1')`,
-  ).run();
+test('el PIN y la contraseña se guardan con el mismo formato', async () => {
+  const pin = await hashearPin('482915');
+  const password = await hashearPassword('fichajes2026');
+  const formato = /^pbkdf2\$100000\$[0-9a-f]{32}\$[0-9a-f]{64}$/;
 
-  const { token } = await crearEnlaceMagico(env, 'usu_1');
-  db.prepare(`UPDATE enlaces_magicos SET expira_en = '2020-01-01T00:00:00Z'`).run();
-  await assert.rejects(() => canjearEnlaceMagico(env, token), /no es válido o ha caducado/);
+  assert.match(pin, formato);
+  assert.match(password, formato);
 });
 
-test('en la base de datos se guarda el hash del token, nunca el token', async () => {
+// --- Límite de intentos ----------------------------------------------------
+
+test('el cerrojo salta al quinto fallo y no antes', async () => {
   const { db, env } = entornoDePrueba();
   sembrar(db);
-  db.prepare(
-    `INSERT INTO usuarios (id, email, nombre, rol, empresa_id)
-     VALUES ('usu_1','jefe@ejemplo.es','Jefe','empresa','emc_1')`,
-  ).run();
 
-  const { token } = await crearEnlaceMagico(env, 'usu_1');
-  const fila = db.prepare(`SELECT token_hash FROM enlaces_magicos`).get();
-  assert.notEqual(fila.token_hash, token);
-  assert.equal(fila.token_hash, await sha256Token(token));
+  for (let i = 0; i < INTENTOS_MAXIMOS - 1; i++) {
+    await anotarFallo(env, '001001', '203.0.113.1');
+    // Todavía no debe bloquear.
+    await exigirSinBloqueo(env, '001001', '203.0.113.1');
+  }
+
+  await anotarFallo(env, '001001', '203.0.113.1');
+  await assert.rejects(
+    () => exigirSinBloqueo(env, '001001', '203.0.113.1'),
+    (error) => error.estado === 429 && error.codigo === 'demasiados_intentos',
+  );
+});
+
+test('el cerrojo por IP aguanta más, para no bloquear a compañeros', async () => {
+  const { db, env } = entornoDePrueba();
+  sembrar(db);
+
+  // Un identificador distinto en cada fallo: el cerrojo por identificador no
+  // llega a saltar nunca, sólo el de la IP.
+  for (let i = 0; i < INTENTOS_MAXIMOS_IP - 1; i++) {
+    await anotarFallo(env, `00100${i}`, '198.51.100.1');
+  }
+  await exigirSinBloqueo(env, 'otro-mas', '198.51.100.1');
+
+  await anotarFallo(env, 'el-ultimo', '198.51.100.1');
+  await assert.rejects(
+    () => exigirSinBloqueo(env, 'cualquiera', '198.51.100.1'),
+    (error) => error.estado === 429,
+  );
+  assert.ok(INTENTOS_MAXIMOS_IP > INTENTOS_MAXIMOS);
+});
+
+test('acertar borra la cuenta del identificador, pero no la de la IP', async () => {
+  const { db, env } = entornoDePrueba();
+  sembrar(db);
+
+  for (let i = 0; i < 3; i++) await anotarFallo(env, '001001', '203.0.113.2');
+  await limpiarFallos(env, '001001', '203.0.113.2');
+
+  const porIdentificador = db.prepare(
+    `SELECT fallidos FROM intentos_acceso WHERE clave = 'id:001001'`,
+  ).get();
+  assert.equal(porIdentificador, undefined, 'la cuenta del identificador se borra');
+
+  const porIp = db.prepare(
+    `SELECT fallidos FROM intentos_acceso WHERE clave = 'ip:203.0.113.2'`,
+  ).get();
+  assert.equal(porIp.fallidos, 3,
+    'si acertar limpiase la IP, bastaría un acceso legítimo entre tanteos para anular el cerrojo');
+});
+
+test('un bloqueo vencido no arrastra la cuenta anterior', async () => {
+  const { db, env } = entornoDePrueba();
+  sembrar(db);
+
+  for (let i = 0; i < INTENTOS_MAXIMOS; i++) await anotarFallo(env, '001001', null);
+  await assert.rejects(() => exigirSinBloqueo(env, '001001', null),
+    (error) => error.estado === 429);
+
+  // Se adelanta el reloj: el bloqueo ya pasó.
+  db.prepare(
+    `UPDATE intentos_acceso SET bloqueado_hasta = '2020-01-01T00:00:00Z' WHERE clave = 'id:001001'`,
+  ).run();
+  await exigirSinBloqueo(env, '001001', null);
+
+  // Y vuelve a haber cinco intentos, no uno.
+  await anotarFallo(env, '001001', null);
+  const fila = db.prepare(`SELECT fallidos FROM intentos_acceso WHERE clave = 'id:001001'`).get();
+  assert.equal(fila.fallidos, 1, 'la cuenta reinicia tras cumplirse el bloqueo');
 });

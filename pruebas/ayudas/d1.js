@@ -81,6 +81,7 @@ export function sembrar(db, opciones = {}) {
   const empresa = {
     id: 'emc_1',
     gestoria_id: 'ges_1',
+    numero: opciones.numero ?? 1,
     nombre: 'Soldaduras Pérez S.L.',
     codigo: 'SOLDPER',
     cif: 'B12345678',
@@ -93,22 +94,23 @@ export function sembrar(db, opciones = {}) {
 
   db.exec(`INSERT INTO gestorias (id, nombre) VALUES ('ges_1', 'Gestoría Ejemplo')`);
   db.prepare(
-    `INSERT INTO empresas (id, gestoria_id, nombre, codigo, cif, zona_horaria,
+    `INSERT INTO empresas (id, gestoria_id, numero, nombre, codigo, cif, zona_horaria,
         tolerancia_minutos, jornada_maxima_alerta_horas, geolocalizacion_activa, activa)
-     VALUES (?,?,?,?,?,?,?,?,?,?)`,
-  ).run(empresa.id, empresa.gestoria_id, empresa.nombre, empresa.codigo, empresa.cif,
-    empresa.zona_horaria, empresa.tolerancia_minutos, empresa.jornada_maxima_alerta_horas,
-    empresa.geolocalizacion_activa, empresa.activa);
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+  ).run(empresa.id, empresa.gestoria_id, empresa.numero, empresa.nombre, empresa.codigo,
+    empresa.cif, empresa.zona_horaria, empresa.tolerancia_minutos,
+    empresa.jornada_maxima_alerta_horas, empresa.geolocalizacion_activa, empresa.activa);
 
   db.prepare(
-    `INSERT INTO empleados (id, empresa_id, nombre, apellidos, tipo_jornada, rol,
+    `INSERT INTO empleados (id, empresa_id, numero, nombre, apellidos, tipo_jornada, rol,
         dias_vacaciones_anuales, fecha_alta, activo)
-     VALUES ('emp_1','emc_1','Ana','Ruiz Gómez','completa','empleado',22,'2026-01-01',1)`,
+     VALUES ('emp_1','emc_1',1,'Ana','Ruiz Gómez','completa','empleado',22,'2026-01-01',1)`,
   ).run();
 
   return {
     empresa,
-    empleado: { id: 'emp_1', nombre: 'Ana', apellidos: 'Ruiz Gómez' },
+    // Identificador de acceso: empresa 1, empleado 1.
+    empleado: { id: 'emp_1', numero: 1, identificador: '001001', nombre: 'Ana', apellidos: 'Ruiz Gómez' },
   };
 }
 

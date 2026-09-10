@@ -131,10 +131,11 @@ async function cargarPlantilla() {
   const datos = await api('/api/empleados?incluir_bajas=1');
   $('tabla-empleados').innerHTML = datos.empleados.length ? `
     <div class="tabla-envoltorio"><table>
-      <thead><tr><th>Trabajador</th><th>Documento</th><th>Jornada</th><th class="numero">Vacaciones</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr><th>Trabajador</th><th>Identificador</th><th>Documento</th><th>Jornada</th><th class="numero">Vacaciones</th><th>Estado</th><th></th></tr></thead>
       <tbody>${datos.empleados.map((e) => `
         <tr>
           <td>${escapar(`${e.nombre} ${e.apellidos}`.trim())}</td>
+          <td><code>${escapar(e.identificador)}</code>${e.tiene_pin ? '' : ' <span class="etiqueta ambar">sin PIN</span>'}</td>
           <td>${escapar(e.documento_identidad ?? '—')}</td>
           <td>${escapar(e.tipo_jornada)}</td>
           <td class="numero">${e.dias_vacaciones_anuales}</td>
@@ -143,7 +144,7 @@ async function cargarPlantilla() {
             : `<span class="etiqueta">baja ${escapar(e.fecha_baja ?? '')}</span>`}</td>
           <td style="white-space:nowrap">
             <button class="secundario pequeno" data-horario="${escapar(e.id)}">Horario</button>
-            <button class="secundario pequeno" data-pin="${escapar(e.id)}">PIN</button>
+            <button class="secundario pequeno" data-pin="${escapar(e.id)}">Reponer PIN</button>
             ${e.activo ? `<button class="secundario pequeno" data-baja="${escapar(e.id)}">Baja</button>` : ''}
           </td>
         </tr>`).join('')}</tbody>
@@ -164,7 +165,7 @@ function enlazar(selector, atributo, accion) {
 $('form-empleado').addEventListener('submit', async (evento) => {
   evento.preventDefault();
   try {
-    await api('/api/empleados', {
+    const datos = await api('/api/empleados', {
       metodo: 'POST',
       cuerpo: {
         nombre: $('e-nombre').value.trim(),
@@ -177,7 +178,9 @@ $('form-empleado').addEventListener('submit', async (evento) => {
     });
     $('form-empleado').reset();
     $('e-vacaciones').value = 22;
-    avisar($('aviso'), 'Trabajador dado de alta.', 'exito');
+    avisar($('aviso'),
+      `Trabajador dado de alta con el identificador ${datos.empleado.identificador}. `
+      + 'Déselo junto con su PIN; tendrá que cambiarlo al entrar.', 'exito');
     cargarPlantilla();
   } catch (error) {
     avisar($('aviso'), error.message, 'error');
@@ -220,12 +223,25 @@ async function editarHorario(empleadoId) {
   avisar($('aviso'), `Horario guardado con vigencia desde ${desde}.`, 'exito');
 }
 
+/**
+ * Repone el PIN de un trabajador. Es la mitad de abajo de la cadena que
+ * sustituye al «he olvidado mi contraseña» por correo: la gestoría repone la
+ * contraseña de sus empresas, y la empresa el PIN de sus trabajadores.
+ */
 async function cambiarPin(empleadoId) {
-  const pin = prompt('Nuevo PIN de seis dígitos');
+  const sugerido = String(Math.floor(100000 + Math.random() * 900000));
+  const pin = prompt(
+    'PIN nuevo de seis cifras.\n\n'
+    + 'Anótelo: no se puede volver a consultar. El trabajador tendrá que '
+    + 'cambiarlo la primera vez que entre.',
+    sugerido,
+  );
   if (!pin) return;
   try {
     await api(`/api/empleados/${empleadoId}`, { metodo: 'PATCH', cuerpo: { pin } });
-    avisar($('aviso'), 'PIN actualizado.', 'exito');
+    avisar($('aviso'),
+      `PIN repuesto: ${pin}. El trabajador deberá cambiarlo al entrar.`, 'exito');
+    cargarPlantilla();
   } catch (error) {
     avisar($('aviso'), error.message, 'error');
   }

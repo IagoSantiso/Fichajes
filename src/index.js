@@ -22,15 +22,13 @@ import { registrarRutasInspeccion, sesionDeInspeccion, RUTAS_INSPECCION } from '
 
 /** Rutas que no exigen sesión. Todo lo demás sí. */
 const PUBLICAS = new Set([
-  'POST /api/auth/enlace',
-  'GET /api/auth/entrar',
-  // El trabajador consulta la lista de su empresa antes de tener sesión: es
-  // el paso previo a teclear el PIN. Sólo devuelve nombres, y queda en el log.
-  'GET /api/auth/empresa/:codigo',
-  'POST /api/auth/pin',
-  // Sólo dice si el modo demostración está activo; no revela nada de la
-  // instalación. Ver MODO_DEMO_ENLACE en src/rutas/auth.js.
-  'GET /api/auth/modo',
+  // Las dos puertas de entrada. No revelan nada de quien no acierta: misma
+  // respuesta exista o no la cuenta, y con límite de intentos.
+  'POST /api/auth/trabajador',
+  'POST /api/auth/panel',
+  // Longitud del PIN y mínimo de la contraseña, para que las pantallas de
+  // cambio de clave no repitan las reglas a mano.
+  'GET /api/auth/requisitos',
   'GET /api/salud',
 ]);
 
@@ -38,8 +36,12 @@ const PUBLICAS = new Set([
 const SIN_EMPRESA = new Set([
   'GET /api/auth/yo',
   'POST /api/auth/salir',
+  // Cambiar la propia clave no depende de en qué empresa se esté trabajando.
+  'POST /api/auth/cambiar-pin',
+  'POST /api/auth/cambiar-password',
   'GET /api/gestoria/empresas',
   'POST /api/gestoria/empresas',
+  'POST /api/gestoria/empresas/:id/password',
   'GET /api/gestoria/exportacion',
   'GET /api/exportacion/formatos',
   'GET /api/incidencias/tipos',

@@ -40,19 +40,15 @@ npm run dev
 
 Con la semilla cargada:
 
-- **Trabajador**: <http://localhost:8787/> — código `SOLDPER`, PIN `482915`.
-- **Empresa y gestoría**: <http://localhost:8787/entrar/> con
-  `jefe@soldaduras.ejemplo` o `gestor@ejemplo.es`. Con `MODO_DEMO_ENLACE = "1"`
-  (el valor por defecto en `wrangler.toml`), la propia pantalla de entrada
-  enseña el enlace de acceso con un botón, sin correo de por medio. Con el modo
-  demo apagado, el enlace aparece en la salida de `wrangler dev` en su lugar.
+- **Trabajador**: <http://localhost:8787/> — identificador `001001` (Ana),
+  `001002` (Luis) o `001003` (Marta), y PIN `482915`.
+- **Empresa y gestoría**: <http://localhost:8787/entrar/> —
+  `jefe@soldaduras.ejemplo` o `gestor@ejemplo.es`, contraseña `fichajes2026`.
 
 ### Dar un enlace de previsualización a un cliente
 
 Para que alguien pueda probar la plataforma en una URL pública, sin instalar
-nada y sin depender de `wrangler dev`, se despliega igual que a producción
-(ver más abajo) dejando `MODO_DEMO_ENLACE = "1"`, que es el valor con el que
-viene el repositorio:
+nada y sin depender de `wrangler dev`, se despliega igual que a producción:
 
 ```bash
 npx wrangler login
@@ -82,14 +78,12 @@ comprueban.
 
 La URL que da `npm run deploy`
 (`https://fichajes.<su-subdominio>.workers.dev`) ya sirve para que el cliente
-entre como trabajador (código `SOLDPER`, PIN `482915`) o como empresa/gestoría
-desde `/entrar/`, donde el botón "Entrar ahora" sustituye al correo.
+entre como trabajador (identificador `001001`, PIN `482915`) o como
+empresa/gestoría desde `/entrar/` con `gestor@ejemplo.es` y `fichajes2026`.
 
-**Antes de dar de alta el primer cliente real**, ponga `MODO_DEMO_ENLACE = "0"`
-en `wrangler.toml` y despliegue de nuevo: con el modo demo activo, cualquiera
-que sepa el correo de una empresa —no que tenga acceso a su buzón— puede
-entrar como ella. Ver la nota en
-[`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md).
+**Antes de dar de alta el primer cliente real**, cambie las contraseñas y los
+PIN de la semilla: están escritos en este repositorio y por tanto no son
+secretos.
 
 ### Producción
 
@@ -100,8 +94,25 @@ npm run db:remoto
 npm run deploy
 ```
 
-Y en `wrangler.toml`: `MODO_DEMO_ENLACE = "0"` y
-`CORREO_PROVEEDOR = "resend"`.
+Y en `wrangler.toml`, `CORREO_PROVEEDOR = "resend"`: el correo ya no
+interviene en el acceso, pero sí en los avisos de incidencias.
+
+### Cómo se entra
+
+| Quién | Con qué | Si la olvida |
+|---|---|---|
+| Trabajador | Identificador de seis cifras (tres de su empresa, tres suyas) y PIN | Se la repone su empresa |
+| Empresa | Su correo y una contraseña | Se la repone su gestoría |
+| Gestoría | Su correo y una contraseña | Se repone a mano en la base de datos |
+
+No hay enlaces mágicos ni correos de recuperación: obligaban a mantener un
+proveedor de correo con dominio verificado y a que el mensaje llegase, para un
+producto que se vende a empresas de tres personas. Toda clave repartida por
+otro obliga a cambiarla en el primer acceso.
+
+Cinco intentos fallidos bloquean un identificador diez minutos; veinte desde
+una misma IP la bloquean a ella, que es lo que frena el barrido de
+identificadores.
 
 ## Pruebas
 
@@ -124,7 +135,7 @@ src/
     fichajes.js             Registro, rectificación, anulación y estado del botón
     hash.js                 Cadena SHA-256 y verificación
     datos.js                Capa de acceso con filtro de empresa obligatorio
-    auth.js                 Enlace mágico, PIN, sesiones
+    auth.js                 Claves, sesiones y límite de intentos
     tiempo.js               Zonas horarias, periodos y aritmética de fechas
     informes.js             Cálculo de informes
     correo.js, log.js, router.js, ids.js, respuestas.js

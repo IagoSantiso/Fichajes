@@ -270,3 +270,15 @@ table.dias .dia .total-dia { display: none; }
 .texto-verde { color: var(--verde); }
 .texto-ambar { color: var(--ambar); }
 .texto-rojo  { color: var(--rojo); }
+
+/*
+ * Campos de sólo cifras: identificador y PIN. Tipografía tabular y espaciada
+ * para que se lean de un vistazo y no haya que contar los dígitos.
+ */
+.campo-numerico {
+  font-size: 1.5rem;
+  letter-spacing: .25em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}

@@ -32,26 +32,11 @@ crons = ["*/15 * * * *", "50 21 * * *", "50 22 * * *"]
 
 [vars]
 ENTORNO = "desarrollo"
-# Remitente de los enlaces mágicos y de los avisos de incidencias.
+# Remitente de los avisos de incidencias. El correo no interviene en el acceso.
 CORREO_REMITENTE = "fichajes@example.com"
 CORREO_NOMBRE_REMITENTE = "Registro de jornada"
 # Proveedor de correo: "resend" | "consola" (desarrollo: vuelca a los logs)
 CORREO_PROVEEDOR = "consola"
-
-# ---------------------------------------------------------------------------
-# MODO DEMOSTRACIÓN
-#
-# Con "1", el enlace mágico de acceso (empresa y gestoría) se devuelve en la
-# propia respuesta de la API y la pantalla de entrada lo muestra con un botón,
-# en lugar de exigir un correo real. Es lo que permite dar a alguien una URL
-# pública para que la pruebe sin tener conectado un proveedor de correo.
-#
-# ADVERTENCIA: esto anula la comprobación de que quien pide el enlace es
-# realmente el dueño de ese correo, que es la base de seguridad del acceso de
-# empresa y gestoría. Póngalo a "0" antes de dar de alta datos reales de
-# clientes o de empleados. Ver src/rutas/auth.js.
-# ---------------------------------------------------------------------------
-MODO_DEMO_ENLACE = "1"
 
 # Secretos (wrangler secret put ...):
 #   SECRETO_SESION    -> clave HMAC para firmar cookies de sesión

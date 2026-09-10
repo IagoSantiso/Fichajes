@@ -58,7 +58,8 @@ async function cargarEmpresas() {
             <strong style="flex:1">${escapar(e.nombre)}</strong>
           </div>
           <p class="ayuda" style="margin:.4rem 0 0">
-            Código ${escapar(e.codigo)} · ${e.plantilla} ${e.plantilla === 1 ? 'trabajador' : 'trabajadores'}
+            Empresa n.º <strong>${String(e.numero).padStart(3, '0')}</strong> ·
+            ${e.plantilla} ${e.plantilla === 1 ? 'trabajador' : 'trabajadores'}
           </p>
           <p style="margin:.5rem 0 0">
             ${e.solicitudes_pendientes
@@ -71,6 +72,11 @@ async function cargarEmpresas() {
           <p class="ayuda" style="margin:.5rem 0 0">
             Último fichaje: ${e.ultimo_fichaje ? escapar(e.ultimo_fichaje) : 'todavía ninguno'}
           </p>
+          <p style="margin:.6rem 0 0">
+            <button class="secundario pequeno" data-password="${escapar(e.id)}">
+              Reponer contraseña
+            </button>
+          </p>
         </div>`).join('')
     : '<div class="tarjeta"><p class="vacio">Todavía no ha dado de alta ninguna empresa.</p></div>';
 
@@ -81,12 +87,41 @@ async function cargarEmpresas() {
       if (evento.key === 'Enter' || evento.key === ' ') { evento.preventDefault(); abrir(); }
     });
   }
+
+  // El botón de reponer contraseña no debe abrir además el panel de la empresa.
+  for (const boton of document.querySelectorAll('[data-password]')) {
+    boton.addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      reponerPassword(boton.dataset.password);
+    });
+  }
 }
 
 /** Entrar en una empresa es abrir su panel con la empresa activa fijada. */
 function entrarEnEmpresa(id) {
   fijarEmpresaActiva(id);
   location.href = `/empresa/?empresa=${encodeURIComponent(id)}`;
+}
+
+/**
+ * Repone la contraseña del panel de una empresa. Es lo que sustituye al «he
+ * olvidado mi contraseña» por correo: sin correo en el acceso, quien repone es
+ * quien está por encima en la cadena.
+ */
+async function reponerPassword(empresaId) {
+  if (!confirm(
+    '¿Reponer la contraseña de acceso al panel de esta empresa?\n\n'
+    + 'La anterior dejará de valer y se cerrarán sus sesiones abiertas.',
+  )) return;
+
+  try {
+    const datos = await api(`/api/gestoria/empresas/${empresaId}/password`, { metodo: 'POST' });
+    avisar($('aviso'),
+      `Contraseña repuesta para ${datos.email}: ${datos.password} — ${datos.aviso}`,
+      'pendiente');
+  } catch (error) {
+    avisar($('aviso'), error.message, 'error');
+  }
 }
 
 // --- Cierre de periodo ----------------------------------------------------
@@ -138,9 +173,14 @@ $('form-empresa').addEventListener('submit', async (evento) => {
         avisos_email: $('n-avisos').value.trim() || null,
       },
     });
+    const numero = String(datos.empresa.numero).padStart(3, '0');
     avisar($('aviso'),
-      `Empresa dada de alta. El código de fichaje es ${datos.empresa.codigo}: `
-      + 'es lo que teclean los trabajadores.', 'exito');
+      `Empresa dada de alta con el número ${numero}. Sus trabajadores fichan con `
+      + `un identificador que empieza por ${numero}.`
+      + (datos.password_inicial
+        ? ` Contraseña del panel: ${datos.password_inicial} — ${datos.aviso}`
+        : ''),
+      datos.password_inicial ? 'pendiente' : 'exito');
     $('form-empresa').reset();
     $('n-tolerancia').value = 20;
     $('n-jornada').value = 12;

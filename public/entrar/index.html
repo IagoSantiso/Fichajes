@@ -9,69 +9,127 @@
 <link rel="stylesheet" href="/css/estilo.css">
 </head>
 <body>
-<section class="centrado" style="padding-top:3rem">
+
+<section id="paso-entrar" class="centrado" style="padding-top:3rem">
   <h1>Entrar</h1>
-  <p class="ayuda">
-    Para empresas y gestorías. Le enviamos un enlace de acceso al correo:
-    no hay contraseña que recordar.
-  </p>
-  <div id="aviso-demo" class="aviso pendiente" hidden></div>
+  <p class="ayuda">Para empresas y gestorías.</p>
   <div id="aviso" class="aviso" hidden></div>
-  <div id="enlace-demo" hidden style="margin-bottom:1rem"></div>
   <form id="form">
     <div class="campo">
       <label for="email">Correo electrónico</label>
       <input type="email" id="email" autocomplete="email" required>
     </div>
-    <button type="submit" style="width:100%">Enviarme el enlace</button>
+    <div class="campo">
+      <label for="password">Contraseña</label>
+      <input type="password" id="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" style="width:100%">Entrar</button>
   </form>
   <p class="ayuda" style="margin-top:1.5rem">
-    ¿Es usted trabajador? <a href="/">Fiche con su código y su PIN</a>.
+    ¿Es usted trabajador? <a href="/">Fiche con su identificador y su PIN</a>.
+  </p>
+  <p class="ayuda">
+    ¿Ha olvidado la contraseña? Pídasela a su gestoría, que puede reponerla.
   </p>
 </section>
 
+<!-- Cambio obligatorio en el primer acceso -->
+<section id="paso-cambiar" class="centrado" hidden style="padding-top:3rem">
+  <h1>Cambie su contraseña</h1>
+  <p class="ayuda">
+    La contraseña que le dieron la conoce también quien se la dio. Elija una
+    nueva que sepa sólo usted.
+  </p>
+  <div id="aviso-cambio" class="aviso" hidden></div>
+  <form id="form-cambiar">
+    <div class="campo">
+      <label for="actual">Contraseña actual</label>
+      <input type="password" id="actual" autocomplete="current-password" required>
+    </div>
+    <div class="campo">
+      <label for="nueva">Contraseña nueva</label>
+      <input type="password" id="nueva" autocomplete="new-password" required>
+      <p class="ayuda" id="requisito"></p>
+    </div>
+    <div class="campo">
+      <label for="repetida">Repita la contraseña nueva</label>
+      <input type="password" id="repetida" autocomplete="new-password" required>
+    </div>
+    <button type="submit" style="width:100%">Guardar y entrar</button>
+  </form>
+</section>
+
 <script type="module">
-import { api, avisar, escapar } from '/js/api.js';
+import { api, avisar } from '/js/api.js';
 
-// Si el modo demostración está activo, se avisa y no hace falta correo real:
-// el propio servidor lo dirá al pedir el enlace.
-api('/api/auth/modo', { silencioso: true }).then((datos) => {
-  if (!datos.demo) return;
-  avisar(document.getElementById('aviso-demo'),
-    'Modo demostración: no se envía ningún correo. Al pedir el enlace, esta '
-    + 'misma pantalla lo mostrará con un botón para entrar.', 'pendiente');
-}).catch(() => {});
+const $ = (id) => document.getElementById(id);
+let destino = '/empresa/';
+let minimo = 8;
 
-const form = document.getElementById('form');
-form.addEventListener('submit', async (evento) => {
+api('/api/auth/requisitos', { silencioso: true })
+  .then((datos) => {
+    minimo = datos.password_minimo;
+    $('requisito').textContent = `Al menos ${minimo} caracteres.`;
+  })
+  .catch(() => {});
+
+function mostrar(paso) {
+  $('paso-entrar').hidden = paso !== 'entrar';
+  $('paso-cambiar').hidden = paso !== 'cambiar';
+}
+
+$('form').addEventListener('submit', async (evento) => {
   evento.preventDefault();
-  const boton = form.querySelector('button');
+  const boton = $('form').querySelector('button');
   boton.disabled = true;
-  const cajaEnlace = document.getElementById('enlace-demo');
-  cajaEnlace.hidden = true;
   try {
-    const datos = await api('/api/auth/enlace', {
+    const datos = await api('/api/auth/panel', {
       metodo: 'POST',
       silencioso: true,
-      cuerpo: { email: document.getElementById('email').value.trim() },
+      cuerpo: { email: $('email').value.trim(), password: $('password').value },
     });
+    destino = datos.destino;
 
-    if (datos.demo && datos.enlace) {
-      cajaEnlace.innerHTML = `
-        <div class="aviso exito" style="display:block">
-          <p style="margin:0 0 .6rem">Enlace generado. Caduca en ${escapar(datos.minutos)} minutos y sólo sirve una vez.</p>
-          <a href="${escapar(datos.enlace)}">
-            <button type="button" style="width:100%">Entrar ahora</button>
-          </a>
-        </div>`;
-      cajaEnlace.hidden = false;
-      document.getElementById('aviso').hidden = true;
-    } else {
-      avisar(document.getElementById('aviso'), datos.mensaje + '. Revise su bandeja de entrada.', 'exito');
+    if (datos.debe_cambiar_password) {
+      // Se arrastra la actual para que no haya que teclearla dos veces.
+      $('actual').value = $('password').value;
+      mostrar('cambiar');
+      $('nueva').focus();
+      return;
     }
-    form.reset();
+    location.href = destino;
   } catch (error) {
-    avisar(document.getElementById('aviso'), error.message, 'error');
+    avisar($('aviso'), error.message, 'error');
+  } finally {
+    boton.disabled = false;
+    $('password').value = '';
+  }
+});
+
+$('form-cambiar').addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const nueva = $('nueva').value;
+
+  if (nueva !== $('repetida').value) {
+    avisar($('aviso-cambio'), 'Las dos contraseñas nuevas no coinciden.', 'error');
+    return;
+  }
+  if (nueva.length < minimo) {
+    avisar($('aviso-cambio'), `La contraseña debe tener al menos ${minimo} caracteres.`, 'error');
+    return;
+  }
+
+  const boton = $('form-cambiar').querySelector('button');
+  boton.disabled = true;
+  try {
+    await api('/api/auth/cambiar-password', {
+      metodo: 'POST',
+      silencioso: true,
+      cuerpo: { password_actual: $('actual').value, password_nueva: nueva },
+    });
+    location.href = destino;
+  } catch (error) {
+    avisar($('aviso-cambio'), error.message, 'error');
   } finally {
     boton.disabled = false;
   }

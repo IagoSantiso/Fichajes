@@ -15,9 +15,7 @@ const $ = (id) => document.getElementById(id);
 
 const estado = {
   yo: null,
-  empresa: null,
-  empleados: [],
-  empleadoElegido: null,
+  identificador: '',
   pin: '',
   vista: 'fichar',
 };
@@ -31,11 +29,14 @@ async function arrancar() {
 
   try {
     estado.yo = await api('/api/auth/yo', { silencioso: true });
+    if (estado.yo.debe_cambiar_pin) { mostrarPaso('paso-cambiar-pin'); return; }
     await entrarEnLaAplicacion();
   } catch {
-    mostrarPaso('paso-empresa');
-    const recordado = localStorage.getItem('codigo_empresa');
-    if (recordado) $('codigo').value = recordado;
+    mostrarPaso('paso-acceso');
+    // El identificador se recuerda; el PIN nunca.
+    const recordado = localStorage.getItem('identificador');
+    if (recordado) $('identificador').value = recordado;
+    pintarPuntosPin();
   }
 }
 
@@ -49,7 +50,7 @@ function registrarServiceWorker() {
 }
 
 function mostrarPaso(id) {
-  for (const paso of ['paso-empresa', 'paso-empleado', 'paso-pin']) {
+  for (const paso of ['paso-acceso', 'paso-cambiar-pin']) {
     $(paso).hidden = paso !== id;
   }
   $('app').hidden = true;
@@ -57,60 +58,11 @@ function mostrarPaso(id) {
 
 // --- Acceso ---------------------------------------------------------------
 
-$('form-empresa').addEventListener('submit', async (evento) => {
-  evento.preventDefault();
-  const codigo = $('codigo').value.trim().toUpperCase();
-  if (!codigo) return;
-  try {
-    const datos = await api(`/api/auth/empresa/${encodeURIComponent(codigo)}`, { silencioso: true });
-    estado.empresa = datos.empresa;
-    estado.empleados = datos.empleados;
-    localStorage.setItem('codigo_empresa', codigo);
-    pintarEmpleados();
-    mostrarPaso('paso-empleado');
-  } catch (error) {
-    avisar($('aviso-empresa'), error.message, 'error');
-  }
-});
-
-function pintarEmpleados() {
-  $('nombre-empresa').textContent = estado.empresa.nombre;
-  const lista = $('lista-empleados');
-  lista.innerHTML = '';
-
-  if (!estado.empleados.length) {
-    lista.innerHTML = '<li class="vacio">Todavía no hay trabajadores con PIN asignado. '
-      + 'Pídaselo a su empresa.</li>';
-    return;
-  }
-
-  for (const empleado of estado.empleados) {
-    const li = document.createElement('li');
-    const boton = document.createElement('button');
-    boton.className = 'secundario';
-    boton.style.cssText = 'width:100%;min-height:3.5rem;text-align:left;font-size:1.1rem';
-    boton.textContent = `${empleado.nombre} ${empleado.apellidos}`.trim();
-    boton.addEventListener('click', () => {
-      estado.empleadoElegido = empleado;
-      estado.pin = '';
-      $('nombre-empleado').textContent = boton.textContent;
-      pintarPuntosPin();
-      $('aviso-pin').hidden = true;
-      mostrarPaso('paso-pin');
-    });
-    li.appendChild(boton);
-    lista.appendChild(li);
-  }
-}
-
-$('volver-codigo').addEventListener('click', () => mostrarPaso('paso-empresa'));
-$('volver-empleados').addEventListener('click', () => {
-  estado.pin = '';
-  mostrarPaso('paso-empleado');
-});
-
-// Teclado numérico propio: en un móvil con guantes, el teclado del sistema es
-// pequeño y se cierra solo. Éste no.
+/**
+ * Teclado numérico propio: en un móvil con guantes, el del sistema es pequeño
+ * y se cierra solo. Éste no. Escribe en el campo que tenga el foco —el
+ * identificador o el PIN— para que todo el acceso se haga sin tocar nada más.
+ */
 (function construirTeclado() {
   const teclado = $('teclado');
   for (const tecla of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '←']) {
@@ -123,11 +75,29 @@ $('volver-empleados').addEventListener('click', () => {
   }
 })();
 
+/** El teclado escribe en el identificador hasta completarlo, y luego en el PIN. */
+function destinoDelTeclado() {
+  return $('identificador').value.trim().length < 6 ? 'identificador' : 'pin';
+}
+
 function pulsarTecla(tecla) {
-  if (tecla === '←') estado.pin = estado.pin.slice(0, -1);
-  else if (/^\d$/.test(tecla) && estado.pin.length < 6) estado.pin += tecla;
+  const campo = $('identificador');
+  if (destinoDelTeclado() === 'identificador') {
+    if (tecla === '←') campo.value = campo.value.slice(0, -1);
+    else if (/^\d$/.test(tecla)) campo.value = (campo.value + tecla).slice(0, 6);
+    pintarPuntosPin();
+    return;
+  }
+
+  if (tecla === '←') {
+    // Con el PIN vacío, el borrado vuelve a corregir el identificador.
+    if (estado.pin === '') { campo.value = campo.value.slice(0, -1); }
+    else estado.pin = estado.pin.slice(0, -1);
+  } else if (/^\d$/.test(tecla) && estado.pin.length < 6) {
+    estado.pin += tecla;
+  }
   pintarPuntosPin();
-  if (estado.pin.length === 6) enviarPin();
+  if (estado.pin.length === 6) enviarAcceso();
 }
 
 function pintarPuntosPin() {
@@ -135,26 +105,67 @@ function pintarPuntosPin() {
     (_, i) => `<span class="${i < estado.pin.length ? 'lleno' : ''}"></span>`).join('');
 }
 
-async function enviarPin() {
+// Teclear con un teclado físico también debe funcionar.
+$('identificador').addEventListener('input', () => {
+  $('identificador').value = $('identificador').value.replace(/\D/g, '').slice(0, 6);
+  pintarPuntosPin();
+});
+
+async function enviarAcceso() {
+  const identificador = $('identificador').value.trim();
+  const pin = estado.pin;
+  estado.pin = '';
+  pintarPuntosPin();
+
   try {
-    await api('/api/auth/pin', {
+    const datos = await api('/api/auth/trabajador', {
       metodo: 'POST',
       silencioso: true,
-      cuerpo: {
-        codigo: estado.empresa.codigo,
-        empleado_id: estado.empleadoElegido.id,
-        pin: estado.pin,
-      },
+      cuerpo: { identificador, pin },
     });
-    estado.pin = '';
+    localStorage.setItem('identificador', identificador);
+    estado.yo = await api('/api/auth/yo');
+
+    if (datos.debe_cambiar_pin) {
+      $('pin-actual').value = pin;
+      mostrarPaso('paso-cambiar-pin');
+      $('pin-nuevo').focus();
+      return;
+    }
+    await entrarEnLaAplicacion();
+  } catch (error) {
+    avisar($('aviso-acceso'), error.message, 'error');
+  }
+}
+
+// --- Cambio obligatorio de PIN --------------------------------------------
+
+$('form-cambiar-pin').addEventListener('submit', async (evento) => {
+  evento.preventDefault();
+  const nuevo = $('pin-nuevo').value.trim();
+
+  if (nuevo !== $('pin-repetido').value.trim()) {
+    avisar($('aviso-cambio'), 'Los dos PIN nuevos no coinciden.', 'error');
+    return;
+  }
+  if (!/^\d{6}$/.test(nuevo)) {
+    avisar($('aviso-cambio'), 'El PIN son seis cifras.', 'error');
+    return;
+  }
+
+  try {
+    await api('/api/auth/cambiar-pin', {
+      metodo: 'POST',
+      silencioso: true,
+      cuerpo: { pin_actual: $('pin-actual').value.trim(), pin_nuevo: nuevo },
+    });
+    $('form-cambiar-pin').reset();
     estado.yo = await api('/api/auth/yo');
     await entrarEnLaAplicacion();
   } catch (error) {
-    estado.pin = '';
-    pintarPuntosPin();
-    avisar($('aviso-pin'), error.message, 'error');
+    avisar($('aviso-cambio'), error.message, 'error');
   }
-}
+});
 
 $('salir').addEventListener('click', async () => {
   await api('/api/auth/salir', { metodo: 'POST', silencioso: true }).catch(() => {});

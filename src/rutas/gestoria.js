@@ -7,7 +7,7 @@
  */
 import { json, malaPeticion, prohibido, noEncontrado, conflicto } from '../lib/respuestas.js';
 import { nuevoId, nuevoToken } from '../lib/ids.js';
-import { sha256Token } from '../lib/auth.js';
+import { sha256Token, hashearPassword } from '../lib/auth.js';
 import { ahoraUtc, fechaLocal, resolverPeriodo } from '../lib/tiempo.js';
 import { informeDePeriodo } from '../lib/informes.js';
 import { exportar, nombreFichero } from '../exportacion/index.js';
@@ -54,6 +54,7 @@ export function registrarRutasGestoria(router) {
       salida.push({
         id: empresa.id,
         nombre: empresa.nombre,
+        numero: empresa.numero,
         codigo: empresa.codigo,
         cif: empresa.cif,
         activa: Boolean(empresa.activa),
@@ -81,9 +82,17 @@ export function registrarRutasGestoria(router) {
       .bind(codigo).first();
     if (repetido) throw conflicto('Ya hay una empresa con ese código');
 
+    // El número de empresa es lo que forma la primera mitad del identificador
+    // con que fichan sus trabajadores. No se reutiliza el de una empresa dada
+    // de baja: sus registros siguen ahí cuatro años.
+    const mayor = await env.DB.prepare(`SELECT MAX(numero) AS n FROM empresas`).first();
+    const numero = (mayor?.n ?? 0) + 1;
+    if (numero > 999) throw conflicto('Se han agotado los números de empresa (máximo 999)');
+
     const empresa = {
       id: nuevoId('emc'),
       gestoria_id: sesion.gestoriaId,
+      numero,
       nombre,
       codigo,
       cif: cuerpo.cif ?? null,
@@ -104,13 +113,18 @@ export function registrarRutasGestoria(router) {
       `INSERT INTO empresas (${columnas.join(',')}) VALUES (${columnas.map(() => '?').join(',')})`,
     ).bind(...columnas.map((c) => empresa[c])).run();
 
-    // Usuario de la empresa, si la gestoría facilita un correo de contacto.
+    // Usuario de la empresa, si la gestoría facilita correo y contraseña. La
+    // contraseña la elige la gestoría y nace marcada para cambio: quien la
+    // reparte la conoce.
+    let passwordInicial = null;
     if (cuerpo.email_empresa) {
+      passwordInicial = String(cuerpo.password_empresa ?? '').trim() || passwordSugerida();
       await env.DB.prepare(
-        `INSERT INTO usuarios (id, email, nombre, rol, empresa_id, activo, creado_en)
-         VALUES (?,?,?,'empresa',?,1,?)`,
+        `INSERT INTO usuarios (id, email, nombre, rol, empresa_id, activo, creado_en,
+                               password_hash, debe_cambiar_password)
+         VALUES (?,?,?,'empresa',?,1,?,?,1)`,
       ).bind(nuevoId('usu'), String(cuerpo.email_empresa).toLowerCase(), nombre,
-        empresa.id, ahoraUtc()).run();
+        empresa.id, ahoraUtc(), await hashearPassword(passwordInicial)).run();
     }
 
     await registrarAcceso(env.DB, {
@@ -122,7 +136,67 @@ export function registrarRutasGestoria(router) {
       ip: peticion.headers.get('cf-connecting-ip'),
     });
 
-    return json({ ok: true, empresa }, 201);
+    return json({
+      ok: true,
+      empresa,
+      // Se enseña una sola vez: sólo se guarda su hash.
+      password_inicial: passwordInicial,
+      aviso: passwordInicial
+        ? 'Anote la contraseña ahora: no se puede volver a consultar. La empresa '
+          + 'tendrá que cambiarla la primera vez que entre.'
+        : null,
+    }, 201);
+  });
+
+  /**
+   * La gestoría repone la contraseña de una de sus empresas.
+   *
+   * Es la mitad de arriba de la cadena que sustituye al «he olvidado mi
+   * contraseña» por correo: la gestoría repone la de sus empresas, y cada
+   * empresa el PIN de sus trabajadores.
+   */
+  router.post('/api/gestoria/empresas/:id/password', async ({ env, sesion, parametros, cuerpo, peticion }) => {
+    exigirGestoria(sesion);
+
+    const empresa = await env.DB.prepare(
+      `SELECT id, nombre FROM empresas WHERE id = ? AND gestoria_id = ?`,
+    ).bind(parametros.id, sesion.gestoriaId).first();
+    if (!empresa) throw noEncontrado('Esa empresa no pertenece a su gestoría');
+
+    const usuario = await env.DB.prepare(
+      `SELECT id, email FROM usuarios WHERE empresa_id = ? AND rol = 'empresa' AND activo = 1`,
+    ).bind(empresa.id).first();
+    if (!usuario) {
+      throw noEncontrado('Esa empresa no tiene todavía un usuario de acceso al panel');
+    }
+
+    const password = String(cuerpo.password ?? '').trim() || passwordSugerida();
+    await env.DB.prepare(
+      `UPDATE usuarios SET password_hash = ?, debe_cambiar_password = 1 WHERE id = ?`,
+    ).bind(await hashearPassword(password), usuario.id).run();
+
+    // Las sesiones abiertas con la contraseña anterior dejan de valer.
+    await env.DB.prepare(
+      `UPDATE sesiones SET revocada_en = ?
+        WHERE actor_id = ? AND revocada_en IS NULL`,
+    ).bind(ahoraUtc(), usuario.id).run();
+
+    await registrarAcceso(env.DB, {
+      empresaId: empresa.id,
+      actorTipo: 'gestoria',
+      actorId: sesion.actorId,
+      accion: 'reposicion_clave',
+      recurso: `contraseña de ${usuario.email}`,
+      ip: peticion.headers.get('cf-connecting-ip'),
+    });
+
+    return json({
+      ok: true,
+      email: usuario.email,
+      password,
+      aviso: 'Anótela ahora: no se puede volver a consultar. La empresa tendrá '
+        + 'que cambiarla la primera vez que entre.',
+    });
   });
 
   /**
@@ -225,7 +299,8 @@ export function registrarRutasGestoria(router) {
     const hoy = fechaLocal(ahoraUtc(), empresa.zona_horaria);
     return json({
       empresa: {
-        id: empresa.id, nombre: empresa.nombre, codigo: empresa.codigo,
+        id: empresa.id, nombre: empresa.nombre, numero: empresa.numero,
+        codigo: empresa.codigo,
         zona_horaria: empresa.zona_horaria,
         tolerancia_minutos: empresa.tolerancia_minutos,
         jornada_maxima_alerta_horas: empresa.jornada_maxima_alerta_horas,
@@ -337,6 +412,18 @@ function consolidar(informes, periodo) {
     totales,
     generado_en: new Date().toISOString(),
   };
+}
+
+/**
+ * Contraseña inicial legible: tres grupos separados por guiones. Se dicta por
+ * teléfono sin equivocarse, y da igual que sea poco entrópica porque nace
+ * marcada para cambio obligatorio en el primer acceso.
+ */
+function passwordSugerida() {
+  const silabas = ['ma', 'ro', 'ti', 'lu', 'pe', 'sa', 'no', 'de', 'val', 'sol', 'mar', 'gal'];
+  const trozo = () => silabas[Math.floor(Math.random() * silabas.length)]
+    + silabas[Math.floor(Math.random() * silabas.length)];
+  return `${trozo()}-${trozo()}-${String(Math.floor(10 + Math.random() * 90))}`;
 }
 
 function codigoSugerido(nombre) {

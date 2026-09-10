@@ -79,16 +79,6 @@ consume una empresa de tres personas, no cuántos megabytes ocupa.
 Cosas que están bien para arrancar y que habrá que revisar. Se anotan para que
 no se descubran por sorpresa.
 
-- **`MODO_DEMO_ENLACE` debe apagarse antes de dar de alta datos reales.**
-  Con esta variable a `"1"` (ver `wrangler.toml`), el enlace mágico de acceso
-  de empresa y gestoría vuelve en la respuesta de la API y la pantalla de
-  entrada lo enseña con un botón, para poder enseñar la plataforma a alguien
-  sin tener un correo real conectado. Es exactamente lo que hace inseguro el
-  mecanismo el resto del tiempo: cualquiera que sepa el correo de una empresa
-  —no que tenga acceso a su buzón— puede entrar. Antes de cargar el primer
-  cliente real, poner `MODO_DEMO_ENLACE = "0"` y, si aún no está, configurar un
-  proveedor de correo de verdad (`CORREO_PROVEEDOR = "resend"`).
-
 - **Verificación de la cadena completa**: `verificarCadenaEmpresa()` carga todos
   los fichajes de la empresa en memoria. A tres o cuatro fichajes por trabajador
   y día son unos pocos miles de filas al año, así que aguanta de sobra el
@@ -96,16 +86,13 @@ no se descubran por sorpresa.
   una empresa mucho mayor, habrá que verificar por tramos y guardar puntos de
   control.
 
-- **Fichaje del listado por código de empresa**: `GET /api/auth/empresa/:codigo`
-  devuelve los nombres de la plantilla a quien conozca el código. Es el patrón
-  de quiosco y es lo que hace que se pueda fichar sin recordar un usuario, pero
-  conviene tenerlo presente: el código de empresa es, de facto, un secreto
-  compartido. Cada consulta queda en el log de accesos.
-
-- **Sin limitación de intentos de PIN**: seis dígitos y sin bloqueo por
-  reintentos. Antes de salir a producción conviene añadir un contador por
-  empleado —o por IP— con espera creciente. El log de accesos ya registra los
-  intentos fallidos, así que la información para hacerlo está.
+- **Identificadores enumerables**: el identificador del trabajador es
+  secuencial (`002003` es el empleado 3 de la empresa 2), así que probando
+  números se descubre qué empresas y empleados existen. Es el precio de que se
+  pueda teclear con guantes. Lo que lo hace asumible es el límite de intentos:
+  cinco fallos bloquean ese identificador diez minutos, y veinte desde una
+  misma IP la bloquean a ella. Si alguna vez se ve tráfico de tanteo en el log
+  de accesos, el siguiente paso sería alargar el bloqueo progresivamente.
 
 - **Correcciones en cadena**: un fichaje sólo admite una rectificación; para
   volver a corregirlo hay que corregir la última. Es lo correcto para no
