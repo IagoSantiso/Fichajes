@@ -45,6 +45,33 @@ Con la semilla cargada:
 - **Empresa y gestoría**: <http://localhost:8787/entrar/> —
   `jefe@soldaduras.ejemplo` o `gestor@ejemplo.es`, contraseña `fichajes2026`.
 
+### Demo con varias empresas
+
+`semillas/desarrollo.sql` sólo trae una empresa (el cliente de referencia del
+brief). Para enseñar el panel de gestoría con varias empresas de verdad —una
+peluquería, una taberna, una empresa de reformas y una frutería, además de la
+de soldadura— se añade `semillas/multiempresa.sql` encima, y se genera el mes
+de fichajes de todas ellas de una vez con `generar-demo-completa.mjs`:
+
+```bash
+npm run db:local
+npm run semilla                           # empresa de referencia (Soldaduras Pérez)
+npm run semilla:multiempresa              # + 4 empresas más, misma gestoría
+node semillas/generar-demo-completa.mjs   # un mes de fichajes e incidencias, para las 5
+npm run dev
+```
+
+Todas las empresas comparten gestoría (`gestor@ejemplo.es` / `fichajes2026`,
+o `usu_<empresa>@...` — ver `multiempresa.sql` para los correos concretos) y
+las mismas contraseña de panel (`fichajes2026`) y PIN de fichaje (`482915`)
+que la empresa de referencia, para que la demo sea fácil de enseñar.
+
+Desde el panel de gestoría (`/gestoria/`, pestaña **Alta de empresa**) se
+puede dar de alta una empresa nueva en cualquier momento — es la vía normal,
+pensada para cuando la gestoría incorpore un cliente real; `multiempresa.sql`
+es sólo un atajo para no rellenar el formulario cinco veces antes de una
+demostración.
+
 ### Dar un enlace de previsualización a un cliente
 
 Para que alguien pueda probar la plataforma en una URL pública, sin instalar
@@ -63,13 +90,17 @@ saldrían a cero, que es una mala demostración. Para llevar al otro lado el mes
 de fichajes de ejemplo, se genera en local y se vuelca a un fichero de SQL:
 
 ```bash
-npm run db:local && npm run semilla       # base local de partida
-node semillas/generar-mes.mjs             # un mes de fichajes realistas
-node semillas/pasar-motor.mjs             # y sus incidencias
+npm run db:local
+npm run semilla                           # base local de partida
+npm run semilla:multiempresa              # + varias empresas, para la demo
+node semillas/generar-demo-completa.mjs   # un mes de fichajes e incidencias, para todas
 node semillas/volcar-demo.mjs             # -> semillas/demo-completa.sql
 
 npx wrangler d1 execute fichajes --remote --file=./semillas/demo-completa.sql
 ```
+
+(Si sólo hace falta una empresa, se omite `semilla:multiempresa` y se usa
+`node semillas/generar-mes.mjs` + `node semillas/pasar-motor.mjs` como antes.)
 
 El volcado es autocontenido —trae gestoría, empresa, plantilla, horarios,
 calendario, fichajes e incidencias— y se puede reaplicar sin duplicar nada. La
