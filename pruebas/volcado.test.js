@@ -73,3 +73,42 @@ test('el volcado no arrastra sesiones, credenciales ni traza de accesos', { skip
       `el volcado no debe incluir ${tabla}`);
   }
 });
+
+// --- Reparación de claves ---------------------------------------------------
+
+/**
+ * semillas/resetear-claves-demo.sql existe porque ya pasó una vez: el volcado
+ * de demostración se quedó desactualizado respecto al esquema y las cuentas de
+ * panel llegaron a un despliegue real con la contraseña vacía. INSERT OR
+ * IGNORE no corrige una fila que ya existe, así que recargar el volcado no
+ * arregla nada; hace falta este script aparte.
+ */
+test('el script de reparación deja entrar con las claves documentadas', async () => {
+  const RESETEO = join(RAIZ, 'semillas', 'resetear-claves-demo.sql');
+  const { db } = crearBaseDePrueba();
+  db.exec(readFileSync(join(RAIZ, 'semillas', 'desarrollo.sql'), 'utf8'));
+
+  // Reproduce el estado roto: la contraseña llegó vacía y el PIN es otro.
+  db.exec(`UPDATE usuarios SET password_hash = NULL`);
+  db.exec(`UPDATE empleados SET pin_hash = 'no-es-este'`);
+
+  db.exec(readFileSync(RESETEO, 'utf8'));
+
+  const { verificarSecreto } = await import('../src/lib/auth.js');
+  const gestor = db.prepare(`SELECT password_hash FROM usuarios WHERE email='gestor@ejemplo.es'`).get();
+  const jefe = db.prepare(`SELECT password_hash FROM usuarios WHERE email='jefe@soldaduras.ejemplo'`).get();
+  const ana = db.prepare(`SELECT pin_hash FROM empleados WHERE id='emp_ana'`).get();
+
+  assert.equal(await verificarSecreto('fichajes2026', gestor.password_hash), true);
+  assert.equal(await verificarSecreto('fichajes2026', jefe.password_hash), true);
+  assert.equal(await verificarSecreto('482915', ana.pin_hash), true);
+});
+
+test('la contraseña de la demo y el PIN de la demo no son el mismo hash', () => {
+  // Es justo el fallo que se coló al escribir el script de reparación: extraer
+  // el primer hash del fichero por descuido, en lugar del que tocaba.
+  const sql = readFileSync(join(RAIZ, 'semillas', 'resetear-claves-demo.sql'), 'utf8');
+  const hashes = [...sql.matchAll(/'(pbkdf2\$[^']+)'/g)].map((m) => m[1]);
+  assert.equal(hashes.length, 2, 'debe haber exactamente un hash de contraseña y uno de PIN');
+  assert.notEqual(hashes[0], hashes[1], 'la contraseña y el PIN de la demo deben llevar hashes distintos');
+});

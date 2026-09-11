@@ -72,9 +72,18 @@ npx wrangler d1 execute fichajes --remote --file=./semillas/demo-completa.sql
 ```
 
 El volcado es autocontenido —trae gestoría, empresa, plantilla, horarios,
-calendario, fichajes e incidencias— y se puede reaplicar sin duplicar nada.
-La cadena de integridad de los fichajes viaja intacta; hay pruebas que lo
+calendario, fichajes e incidencias— y se puede reaplicar sin duplicar nada. La
+cadena de integridad de los fichajes viaja intacta; hay pruebas que lo
 comprueban.
+
+Si alguna vez las claves de acceso de la demo dejan de funcionar (por ejemplo,
+si `demo-completa.sql` se aplicó antes de que existiera la columna
+`password_hash`), un `INSERT OR IGNORE` no las corrige porque las filas ya
+existen. Para eso está el script de reparación, que sí las actualiza:
+
+```bash
+npx wrangler d1 execute fichajes --remote --file=./semillas/resetear-claves-demo.sql
+```
 
 La URL que da `npm run deploy`
 (`https://fichajes.<su-subdominio>.workers.dev`) ya sirve para que el cliente

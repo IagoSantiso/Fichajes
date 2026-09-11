@@ -1,5 +1,5 @@
 -- Datos de demostración generados por semillas/volcar-demo.mjs
--- Volcado el 2026-09-10T20:57:17.329Z
+-- Volcado el 2026-09-11T07:54:27.535Z
 --
 -- Aplicar sobre una base ya migrada:
 --   npx wrangler d1 execute fichajes --remote --file=./semillas/demo-completa.sql
